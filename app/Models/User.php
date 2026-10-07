@@ -87,6 +87,17 @@ class User extends Authenticatable
         return null;
     }
 
+    /** Nama route halaman awal sesuai peran utama (revisi diagram 5.7). */
+    public function rutePeran(): string
+    {
+        return match ($this->peranUtama()) {
+            Role::KETUA_YAYASAN  => 'yayasan.ringkasan',
+            Role::ADMIN          => 'admin.dashboard',
+            Role::KEPALA_SEKOLAH => 'kepsek.persetujuan',
+            default              => 'pegawai.beranda',
+        };
+    }
+
     public function wajibPresensi(): bool
     {
         return $this->kategori !== null && $this->status === 'Aktif';

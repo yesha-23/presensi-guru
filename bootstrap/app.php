@@ -11,7 +11,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'peran' => \App\Http\Middleware\CekPeran::class,
+            'batas.sesi' => \App\Http\Middleware\BatasSesi::class,
+        ]);
+
+        // Belum login -> ke halaman login; sudah login tapi buka /login -> ke dashboard
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(fn () => route('dashboard'));
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
