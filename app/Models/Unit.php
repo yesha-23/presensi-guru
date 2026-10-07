@@ -29,4 +29,15 @@ class Unit extends Model
     {
         return $this->hasMany(KalenderEvent::class);
     }
+
+    // Nama singkat untuk tampilan: SD, KB & TK, Yayasan
+    public function label(): string
+    {
+        return match ($this->kode) {
+            'SD'   => 'SD',
+            'KBTK' => 'KB & TK',
+            'YYS'  => 'Yayasan',
+            default => $this->nama,
+        };
+    }
 }

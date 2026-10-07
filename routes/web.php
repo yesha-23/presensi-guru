@@ -4,6 +4,8 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PegawaiController;
 use App\Models\Role;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\ImporPegawaiController;
+use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -39,9 +41,25 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
         Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas'])->name('surat-tugas');
         Route::view('/kalender', 'segera', ['judul' => 'Kalender Akademik'])->name('kalender');
-        Route::view('/pegawai', 'segera', ['judul' => 'Data Pegawai'])->name('pegawai');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap & Laporan'])->name('rekap');
         Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
+
+        // Data Pegawai: impor Excel
+        Route::get('/pegawai/impor', [ImporPegawaiController::class, 'index'])->name('pegawai.impor');
+        Route::get('/pegawai/impor/template', [ImporPegawaiController::class, 'template'])->name('pegawai.impor.template');
+        Route::post('/pegawai/impor', [ImporPegawaiController::class, 'unggah'])->name('pegawai.impor.unggah');
+        Route::post('/pegawai/impor/simpan', [ImporPegawaiController::class, 'simpan'])->name('pegawai.impor.simpan');
+        Route::post('/pegawai/impor/batal', [ImporPegawaiController::class, 'batal'])->name('pegawai.impor.batal');
+
+        // Data Pegawai: CRUD
+        Route::get('/pegawai', [AdminPegawaiController::class, 'index'])->name('pegawai');
+        Route::post('/pegawai', [AdminPegawaiController::class, 'store'])->name('pegawai.store');
+        Route::put('/pegawai/{pegawai}', [AdminPegawaiController::class, 'update'])->name('pegawai.update');
+        Route::post('/pegawai/{pegawai}/reset-sandi', [AdminPegawaiController::class, 'resetSandi'])->name('pegawai.reset-sandi');
+        Route::delete('/pegawai/{pegawai}', [AdminPegawaiController::class, 'destroy'])->name('pegawai.destroy');
+
+        // Diisi di langkah pendaftaran wajah (14 Okt)
+        Route::view('/pegawai/{pegawai}/wajah', 'segera', ['judul' => 'Pendaftaran Data Wajah'])->name('pegawai.wajah');
     });
 
     // ---------- Kepala Sekolah ----------

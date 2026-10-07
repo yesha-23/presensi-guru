@@ -54,7 +54,7 @@
 
     <nav class="mt-5 flex-1 space-y-1 overflow-y-auto">
         @foreach ($menu as $item)
-            @php $aktif = request()->routeIs($item['route']); @endphp
+            @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
             <a href="{{ route($item['route']) }}"
                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $aktif ? 'bg-merah-muda font-semibold text-merah' : 'font-medium text-gray-700 hover:bg-krem' }}">
                 <i data-lucide="{{ $item['ikon'] }}" class="h-[18px] w-[18px]"></i>
@@ -98,7 +98,7 @@
 @if ($peran === \App\Models\Role::PEGAWAI)
     <nav class="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-garis bg-white lg:hidden">
         @foreach ($menu as $item)
-            @php $aktif = request()->routeIs($item['route']); @endphp
+            @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
             <a href="{{ route($item['route']) }}"
                class="flex flex-col items-center gap-1 py-2.5 text-xs {{ $aktif ? 'font-semibold text-merah' : 'text-gray-600' }}">
                 <i data-lucide="{{ $item['ikon'] }}" class="h-5 w-5"></i>
@@ -107,6 +107,6 @@
         @endforeach
     </nav>
 @endif
-
+@stack('script')
 </body>
 </html>
