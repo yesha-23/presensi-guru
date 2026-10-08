@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Belum login -> ke halaman login; sudah login tapi buka /login -> ke dashboard
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

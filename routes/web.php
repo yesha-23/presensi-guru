@@ -6,6 +6,7 @@ use App\Models\Role;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ImporPegawaiController;
 use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
+use App\Http\Controllers\Admin\WajahController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -58,8 +59,9 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/pegawai/{pegawai}/reset-sandi', [AdminPegawaiController::class, 'resetSandi'])->name('pegawai.reset-sandi');
         Route::delete('/pegawai/{pegawai}', [AdminPegawaiController::class, 'destroy'])->name('pegawai.destroy');
 
-        // Diisi di langkah pendaftaran wajah (14 Okt)
-        Route::view('/pegawai/{pegawai}/wajah', 'segera', ['judul' => 'Pendaftaran Data Wajah'])->name('pegawai.wajah');
+        // Pendaftaran Data Wajah
+        Route::get('/pegawai/{pegawai}/wajah', [WajahController::class, 'create'])->name('pegawai.wajah');
+        Route::post('/pegawai/{pegawai}/wajah', [WajahController::class, 'store'])->name('pegawai.wajah.simpan');
     });
 
     // ---------- Kepala Sekolah ----------

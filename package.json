@@ -15,6 +15,7 @@
         "vite": "^7.0.7"
     },
     "dependencies": {
+        "@vladmandic/face-api": "^1.7.15",
         "lucide": "^1.52.0"
     }
 }
