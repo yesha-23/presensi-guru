@@ -2,13 +2,13 @@
 
 @section('konten')
 <div class="w-full max-w-xl text-center">
-    <div class="mx-auto w-44 rounded-3xl border-4 border-navy bg-white p-4 sm:w-56">
-        <img src="{{ asset('images/logo.png') }}" alt="Logo Sekolah Teruna Bangsa" class="w-full">
+    <div class="mx-auto w-60 sm:w-80">
+        <img src="{{ asset('images/logo.png') }}" alt="Logo Sekolah Teruna Bangsa" class="mx-auto w-56 drop-shadow-sm sm:w-72">
     </div>
 
-    <h1 class="mt-6 text-4xl font-extrabold text-navy sm:text-5xl">Sistem Presensi</h1>
+    <h1 class="mt-6 text-4xl font-extrabold text-navy sm:text-5xl">SISTEM PRESENSI</h1>
     <p class="mx-auto mt-3 max-w-md text-gray-700">
-        Presensi mandiri guru dan karyawan SD &amp; KB-TK dengan pengenalan wajah dan lokasi.
+        Presensi Mandiri Guru dan Karyawan KB, TK &amp; SD dengan Pengenalan Wajah dan Lokasi.
     </p>
 
     @if (session('info'))

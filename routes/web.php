@@ -8,6 +8,8 @@ use App\Http\Controllers\Admin\ImporPegawaiController;
 use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
 use App\Http\Controllers\Admin\WajahController;
 use App\Http\Controllers\PresensiController;
+use App\Http\Controllers\Admin\KalenderController;
+use App\Http\Controllers\Admin\KalenderImporController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -51,7 +53,6 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::view('/presensi', 'segera', ['judul' => 'Data Presensi'])->name('presensi');
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
         Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas'])->name('surat-tugas');
-        Route::view('/kalender', 'segera', ['judul' => 'Kalender Akademik'])->name('kalender');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap & Laporan'])->name('rekap');
         Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
 
@@ -72,6 +73,20 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         // Pendaftaran Data Wajah
         Route::get('/pegawai/{pegawai}/wajah', [WajahController::class, 'create'])->name('pegawai.wajah');
         Route::post('/pegawai/{pegawai}/wajah', [WajahController::class, 'store'])->name('pegawai.wajah.simpan');
+
+        // Kalender Akademik: impor Excel
+        Route::get('/kalender/impor', [KalenderImporController::class, 'index'])->name('kalender.impor');
+        Route::get('/kalender/impor/template', [KalenderImporController::class, 'template'])->name('kalender.impor.template');
+        Route::post('/kalender/impor', [KalenderImporController::class, 'unggah'])->name('kalender.impor.unggah');
+        Route::post('/kalender/impor/simpan', [KalenderImporController::class, 'simpan'])->name('kalender.impor.simpan');
+        Route::post('/kalender/impor/batal', [KalenderImporController::class, 'batal'])->name('kalender.impor.batal');
+
+        // Kalender Akademik: entri & semester
+        Route::get('/kalender', [KalenderController::class, 'index'])->name('kalender');
+        Route::post('/kalender', [KalenderController::class, 'store'])->name('kalender.store');
+        Route::post('/kalender/semester', [KalenderController::class, 'simpanSemester'])->name('kalender.semester');
+        Route::put('/kalender/{entri}', [KalenderController::class, 'update'])->name('kalender.update');
+        Route::delete('/kalender/{entri}', [KalenderController::class, 'destroy'])->name('kalender.destroy');
     });
 
     // ---------- Kepala Sekolah ----------

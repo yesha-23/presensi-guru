@@ -15,12 +15,14 @@
 <header class="border-b-4 border-kuning bg-navy">
     <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <a href="{{ route('beranda') }}" class="flex items-center gap-3">
-            <span class="rounded-xl bg-white p-1.5">
+            <!-- <span class="rounded-xl bg-white p-1.5">
                 <img src="{{ asset('images/logo.png') }}" alt="Logo Teruna Bangsa" class="h-9 w-auto">
-            </span>
+            </span> -->
+            <!-- <img src="{{ asset('images/logo.png') }}" alt="Logo Teruna Bangsa" class="h-12 w-auto"> -->
+            <img src="{{ asset('images/logo.png') }}" alt="Logo Teruna Bangsa"class="h-12 w-auto [filter:drop-shadow(0_0_1px_rgba(255,255,255,0.9))_drop-shadow(0_0_1px_rgba(255,255,255,0.9))]">
             <span class="font-bold leading-tight text-white">
                 <span class="sm:hidden">YPK Teruna<br>Bangsa</span>
-                <span class="hidden sm:inline">Yayasan Pendidikan Kristen Teruna Bangsa</span>
+                <span class="hidden sm:inline">Yayasan Pendidikan Kristen Teruna Bangsa Yogyakarta</span>
             </span>
         </a>
 

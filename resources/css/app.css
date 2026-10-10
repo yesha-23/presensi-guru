@@ -4,6 +4,7 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../config/lencana.php';
 
 @theme {
     --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
@@ -13,6 +14,14 @@
     --color-merah-tua: #991b1b;
     --color-merah-muda: #fdecea;
     --color-kuning: #fcd34d;
-    --color-krem: #f5f3ef;
-    --color-garis: #e5e0d8;
+
+    /* Saran perubahan dari Ketua Yayasan */
+    --color-krem: #f4f1fa;
+    /* lavender sangat muda */
+    --color-garis: #e2dcef;
+    /* garis tepi menyesuaikan */
+
+    /* Warna Awal
+    /* --color-krem: #f5f3ef;
+    --color-garis: #e5e0d8; */
 }

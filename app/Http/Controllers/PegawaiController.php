@@ -4,21 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Models\PengajuanIzin;
 use App\Models\Presensi;
+use App\Services\JadwalService;
 use Illuminate\Http\Request;
 
 class PegawaiController extends Controller
 {
-    public function beranda(Request $request)
+    public function beranda(Request $request, JadwalService $jadwal)
     {
         $user = $request->user()->load('unit');
+        $sekarang = now();
 
         $hariIni = Presensi::where('user_id', $user->id)
-            ->whereDate('tanggal', today())
+            ->whereDate('tanggal', $sekarang)
             ->first();
 
+        // Jadwal hari ini mengikuti kalender (termasuk Hari Kerja Tambahan / libur)
+        $kondisi = $jadwal->kondisiKhusus($user, $sekarang);
+        $jadwalHariIni = $kondisi ? null : $jadwal->jadwal($user, $sekarang);
+
         $bulanIni = Presensi::where('user_id', $user->id)
-            ->whereYear('tanggal', now()->year)
-            ->whereMonth('tanggal', now()->month)
+            ->whereYear('tanggal', $sekarang->year)
+            ->whereMonth('tanggal', $sekarang->month)
             ->get();
 
         $rekap = [
@@ -28,22 +34,21 @@ class PegawaiController extends Controller
             'Sakit'     => $bulanIni->where('status_harian', 'Sakit')->count(),
         ];
 
-        $pengajuanTerakhir = PengajuanIzin::where('user_id', $user->id)->latest()->first();
-
         $salam = match (true) {
-            now()->hour < 11 => 'Selamat pagi',
-            now()->hour < 15 => 'Selamat siang',
-            now()->hour < 18 => 'Selamat sore',
-            default          => 'Selamat malam',
+            $sekarang->hour < 11 => 'Selamat pagi',
+            $sekarang->hour < 15 => 'Selamat siang',
+            $sekarang->hour < 18 => 'Selamat sore',
+            default              => 'Selamat malam',
         };
 
         return view('pegawai.beranda', [
             'judul'             => 'Beranda',
             'user'              => $user,
             'hariIni'           => $hariIni,
+            'kondisi'           => $kondisi,
+            'jadwalHariIni'     => $jadwalHariIni,
             'rekap'             => $rekap,
-            'pengajuanTerakhir' => $pengajuanTerakhir,
-            'jamKerja'          => $user->jamKerja(),
+            'pengajuanTerakhir' => PengajuanIzin::where('user_id', $user->id)->latest()->first(),
             'salam'             => $salam,
         ]);
     }
