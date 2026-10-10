@@ -1,15 +1,18 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\PegawaiController;
-use App\Models\Role;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ImporPegawaiController;
-use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
-use App\Http\Controllers\Admin\WajahController;
-use App\Http\Controllers\PresensiController;
 use App\Http\Controllers\Admin\KalenderController;
 use App\Http\Controllers\Admin\KalenderImporController;
+use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
+use App\Http\Controllers\Admin\WajahController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BuktiPengajuanController;
+use App\Http\Controllers\IzinController;
+use App\Http\Controllers\PegawaiController;
+use App\Http\Controllers\PersetujuanController;
+use App\Http\Controllers\PresensiController;
+use App\Models\Role;
+use Illuminate\Support\Facades\Route;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -34,15 +37,29 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', fn () => redirect()->route(auth()->user()->rutePeran()))
-        ->name('dashboard');
+    Route::get('/dashboard', fn () => redirect()->route(auth()->user()->rutePeran()))->name('dashboard');
+
+    // Bukti izin/sakit: dicek di controller (pemilik, penyetuju, administrator)
+    Route::get('/pengajuan/{pengajuan}/bukti', BuktiPengajuanController::class)->name('pengajuan.bukti');
+
+    // ---------- Persetujuan bersama: kepala sekolah, administrator, ketua yayasan ----------
+    Route::middleware('peran:'.Role::KEPALA_SEKOLAH.','.Role::ADMIN.','.Role::KETUA_YAYASAN)->group(function () {
+        Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan');
+        Route::post('/persetujuan/izin/{pengajuan}/setujui', [PersetujuanController::class, 'setujui'])->name('persetujuan.izin.setujui');
+        Route::post('/persetujuan/izin/{pengajuan}/tolak', [PersetujuanController::class, 'tolak'])->name('persetujuan.izin.tolak');
+    });
 
     // ---------- Pegawai (termasuk kepala sekolah & admin yang juga berperan Pegawai) ----------
     Route::middleware('peran:'.Role::PEGAWAI)->prefix('pegawai')->name('pegawai.')->group(function () {
         Route::get('/beranda', [PegawaiController::class, 'beranda'])->name('beranda');
         Route::view('/riwayat', 'segera', ['judul' => 'Riwayat'])->name('riwayat');
         Route::view('/profil', 'segera', ['judul' => 'Profil'])->name('profil');
-        Route::view('/izin', 'segera', ['judul' => 'Ajukan Izin / Sakit'])->name('izin');
+
+        // Izin & sakit
+        Route::get('/izin', [IzinController::class, 'create'])->name('izin');
+        Route::post('/izin', [IzinController::class, 'store'])->name('izin.store');
+        Route::delete('/izin/{pengajuan}', [IzinController::class, 'batal'])->name('izin.batal');
+
         Route::view('/lembur', 'segera', ['judul' => 'Ajukan Lembur'])->name('lembur');
         Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas Saya'])->name('surat-tugas');
     });
@@ -70,7 +87,7 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/pegawai/{pegawai}/reset-sandi', [AdminPegawaiController::class, 'resetSandi'])->name('pegawai.reset-sandi');
         Route::delete('/pegawai/{pegawai}', [AdminPegawaiController::class, 'destroy'])->name('pegawai.destroy');
 
-        // Pendaftaran Data Wajah
+        // Pendaftaran data wajah
         Route::get('/pegawai/{pegawai}/wajah', [WajahController::class, 'create'])->name('pegawai.wajah');
         Route::post('/pegawai/{pegawai}/wajah', [WajahController::class, 'store'])->name('pegawai.wajah.simpan');
 
@@ -91,7 +108,6 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     // ---------- Kepala Sekolah ----------
     Route::middleware('peran:'.Role::KEPALA_SEKOLAH)->prefix('kepsek')->name('kepsek.')->group(function () {
-        Route::view('/persetujuan', 'segera', ['judul' => 'Persetujuan'])->name('persetujuan');
         Route::view('/pantau', 'segera', ['judul' => 'Pantau Kehadiran'])->name('pantau');
         Route::view('/pkg', 'segera', ['judul' => 'Laporan PKG'])->name('pkg');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap Bulanan'])->name('rekap');
@@ -100,7 +116,6 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     // ---------- Ketua Yayasan ----------
     Route::middleware('peran:'.Role::KETUA_YAYASAN)->prefix('yayasan')->name('yayasan.')->group(function () {
         Route::view('/ringkasan', 'segera', ['judul' => 'Ringkasan Yayasan'])->name('ringkasan');
-        Route::view('/surat-tugas', 'segera', ['judul' => 'Persetujuan Surat Tugas'])->name('surat-tugas');
         Route::view('/pkg', 'segera', ['judul' => 'Laporan PKG'])->name('pkg');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap Bulanan'])->name('rekap');
     });

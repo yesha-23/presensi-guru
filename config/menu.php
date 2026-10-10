@@ -3,6 +3,7 @@
 return [
     'Administrator' => [
         ['label' => 'Dashboard',            'route' => 'admin.dashboard',   'ikon' => 'layout-grid'],
+        ['label' => 'Persetujuan',          'route' => 'persetujuan',       'ikon' => 'clipboard-check'],
         ['label' => 'Data Presensi',        'route' => 'admin.presensi',    'ikon' => 'clock'],
         ['label' => 'Izin, Sakit & Lembur', 'route' => 'admin.pengajuan',   'ikon' => 'file-check'],
         ['label' => 'Surat Tugas',          'route' => 'admin.surat-tugas', 'ikon' => 'briefcase'],
@@ -13,8 +14,7 @@ return [
     ],
 
     'Kepala Sekolah' => [
-        ['label' => 'Riwayat Presensi Saya', 'route' => 'pegawai.riwayat',    'ikon' => 'house'],
-        ['label' => 'Persetujuan',           'route' => 'kepsek.persetujuan', 'ikon' => 'file-check'],
+        ['label' => 'Persetujuan',           'route' => 'persetujuan',        'ikon' => 'file-check'],
         ['label' => 'Pantau Kehadiran',      'route' => 'kepsek.pantau',      'ikon' => 'clock'],
         ['label' => 'Laporan PKG',           'route' => 'kepsek.pkg',         'ikon' => 'chart-column'],
         ['label' => 'Rekap Bulanan',         'route' => 'kepsek.rekap',       'ikon' => 'calendar'],
@@ -22,7 +22,7 @@ return [
 
     'Ketua Yayasan' => [
         ['label' => 'Ringkasan Yayasan',       'route' => 'yayasan.ringkasan',   'ikon' => 'layout-grid'],
-        ['label' => 'Persetujuan Surat Tugas', 'route' => 'yayasan.surat-tugas', 'ikon' => 'pen-line'],
+        ['label' => 'Persetujuan',             'route' => 'persetujuan',         'ikon' => 'pen-line'],
         ['label' => 'Laporan PKG',             'route' => 'yayasan.pkg',         'ikon' => 'chart-column'],
         ['label' => 'Rekap Bulanan',           'route' => 'yayasan.rekap',       'ikon' => 'calendar'],
     ],
@@ -32,5 +32,14 @@ return [
         ['label' => 'Presensi', 'route' => 'presensi.scan',   'ikon' => 'scan-face'],
         ['label' => 'Riwayat',  'route' => 'pegawai.riwayat', 'ikon' => 'list'],
         ['label' => 'Profil',   'route' => 'pegawai.profil',  'ikon' => 'user'],
+    ],
+
+    // Menu pribadi untuk kepala sekolah & administrator yang juga berperan Pegawai
+    'Pribadi' => [
+        ['label' => 'Beranda saya',     'route' => 'pegawai.beranda',     'ikon' => 'house'],
+        ['label' => 'Riwayat presensi', 'route' => 'pegawai.riwayat',     'ikon' => 'list'],
+        ['label' => 'Izin / Sakit',     'route' => 'pegawai.izin',        'ikon' => 'file'],
+        ['label' => 'Lembur',           'route' => 'pegawai.lembur',      'ikon' => 'clock'],
+        ['label' => 'Surat tugas saya', 'route' => 'pegawai.surat-tugas', 'ikon' => 'briefcase'],
     ],
 ];

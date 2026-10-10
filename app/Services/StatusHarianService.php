@@ -31,8 +31,10 @@ class StatusHarianService
             return 'Hadir';
         }
 
-        $khusus = $this->jadwal->kondisiKhusus($user, $tanggal);
-        $status = $khusus['status'] ?? 'Alpa';
+        // Hari nonkerja/libur tetap Libur meskipun tercakup izin atau sakit
+        $hariKerja = $this->jadwal->jadwal($user, $tanggal) !== null;
+        $khusus = $hariKerja ? $this->jadwal->kondisiKhusus($user, $tanggal) : null;
+        $status = $hariKerja ? ($khusus['status'] ?? 'Alpa') : 'Libur';
         $referensi = $khusus['referensi'] ?? null;
 
         // Hari libur tanpa catatan apa pun tidak perlu dibuatkan baris

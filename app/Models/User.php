@@ -93,7 +93,7 @@ class User extends Authenticatable
         return match ($this->peranUtama()) {
             Role::KETUA_YAYASAN  => 'yayasan.ringkasan',
             Role::ADMIN          => 'admin.dashboard',
-            Role::KEPALA_SEKOLAH => 'kepsek.persetujuan',
+            Role::KEPALA_SEKOLAH => 'persetujuan',
             default              => 'pegawai.beranda',
         };
     }

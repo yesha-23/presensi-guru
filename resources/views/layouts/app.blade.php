@@ -14,6 +14,7 @@
     $pengguna = auth()->user();
     $peran = $pengguna->peranUtama();
     $menu = config("menu.$peran", []);
+    $menuPribadi = ($peran !== \App\Models\Role::PEGAWAI && $pengguna->hasRole(\App\Models\Role::PEGAWAI)) ? config('menu.Pribadi', []) : [];
     $inisial = collect(preg_split('/\s+/', preg_replace('/,.*$/', '', $pengguna->nama_lengkap)))
         ->filter()->take(2)
         ->map(fn ($kata) => mb_strtoupper(mb_substr($kata, 0, 1)))
@@ -61,6 +62,18 @@
                 {{ $item['label'] }}
             </a>
         @endforeach
+
+        @if ($menuPribadi)
+            <div class="px-3 pb-1 pt-5 text-xs font-bold uppercase tracking-wide text-gray-400">Presensi saya</div>
+            @foreach ($menuPribadi as $item)
+                @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
+                <a href="{{ route($item['route']) }}"
+                   class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $aktif ? 'bg-merah-muda font-semibold text-merah' : 'font-medium text-gray-700 hover:bg-krem' }}">
+                    <i data-lucide="{{ $item['ikon'] }}" class="h-[18px] w-[18px]"></i>
+                    {{ $item['label'] }}
+                </a>
+            @endforeach
+        @endif
     </nav>
 
     <form method="POST" action="{{ route('logout') }}" class="mt-4">
