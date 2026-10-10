@@ -44,7 +44,7 @@ class MasterDataSeeder extends Seeder
         // Lokasi: GANTI koordinat dengan titik tengah kompleks (Google Maps > klik kanan > salin angka)
         Lokasi::updateOrCreate(
             ['nama' => 'Kompleks YPK Teruna Bangsa'],
-            ['latitude' => -7.7700000, 'longitude' => 110.3800000, 'radius_meter' => 150]
+            ['latitude' => -7.739157, 'longitude' => 110.409601, 'radius_meter' => 150]
         );
 
         // Pengaturan yang bisa diubah administrator

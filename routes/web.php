@@ -7,10 +7,20 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\ImporPegawaiController;
 use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
 use App\Http\Controllers\Admin\WajahController;
+use App\Http\Controllers\PresensiController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
-Route::view('/presensi', 'presensi.scan')->name('presensi.scan'); // diisi di langkah scan wajah
+Route::get('/presensi', [PresensiController::class, 'index'])->name('presensi.scan');
+Route::post('/presensi/masuk', [PresensiController::class, 'masuk'])->name('presensi.masuk');
+
+// Dibatasi 30 permintaan per menit per IP agar endpoint publik tidak disalahgunakan
+Route::middleware('throttle:30,1')->group(function () {
+    Route::post('/presensi/scan', [PresensiController::class, 'scan'])->name('presensi.proses');
+    Route::post('/presensi/pulang/konfirmasi', [PresensiController::class, 'konfirmasiPulang'])->name('presensi.pulang.konfirmasi');
+    Route::post('/presensi/pulang/batal', [PresensiController::class, 'batalPulang'])->name('presensi.pulang.batal');
+    Route::post('/presensi/bukan-saya', [PresensiController::class, 'bukanSaya'])->name('presensi.bukan-saya');
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLogin'])->name('login');

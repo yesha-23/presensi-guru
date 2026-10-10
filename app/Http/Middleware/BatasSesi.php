@@ -34,6 +34,11 @@ class BatasSesi
 
             // Setiap aktivitas mengulang hitungan dari awal
             $sesi->put('terakhir_aktif', now()->timestamp);
+
+            // Sesi dari login otomatis tidak diingat browser (requirement 10.1)
+            if ($otomatis) {
+                config(['session.expire_on_close' => true]);
+            }
         }
 
         return $next($request);
