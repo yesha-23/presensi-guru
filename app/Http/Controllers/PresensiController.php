@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Services\LemburService;
 
 class PresensiController extends Controller
 {
@@ -206,6 +207,11 @@ class PresensiController extends Controller
             ]);
         });
 
+        // Presensi pulang dibatalkan: durasi lembur ikut dihitung ulang
+        if (! $datang) {
+            app(LemburService::class)->perbaruiUntuk($presensi->user_id, $presensi->tanggal->copy());
+        }
+
         return response()->json(['hasil' => 'dibatalkan']);
     }
 
@@ -277,6 +283,9 @@ class PresensiController extends Controller
             'jarak_pulang'       => $bukti['jarak'],
             'skor_wajah_pulang'  => $bukti['skor'],
         ])->save();
+
+        // SR-F22: setelah jam pulang tersimpan, hitung durasi lembur yang disetujui hari ini
+        app(LemburService::class)->perbaruiUntuk($user->id, $waktu);
 
         return $this->berhasil($presensi, $user, 'pulang', [
             'judul'      => $cepat ? 'Presensi Pulang Tercatat' : 'Presensi Pulang Berhasil',

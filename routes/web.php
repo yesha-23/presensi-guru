@@ -13,6 +13,7 @@ use App\Http\Controllers\PersetujuanController;
 use App\Http\Controllers\PresensiController;
 use App\Models\Role;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\LemburController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -47,6 +48,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan');
         Route::post('/persetujuan/izin/{pengajuan}/setujui', [PersetujuanController::class, 'setujui'])->name('persetujuan.izin.setujui');
         Route::post('/persetujuan/izin/{pengajuan}/tolak', [PersetujuanController::class, 'tolak'])->name('persetujuan.izin.tolak');
+        Route::post('/persetujuan/lembur/{lembur}/setujui', [PersetujuanController::class, 'setujuiLembur'])->name('persetujuan.lembur.setujui');
+        Route::post('/persetujuan/lembur/{lembur}/tolak', [PersetujuanController::class, 'tolakLembur'])->name('persetujuan.lembur.tolak');
     });
 
     // ---------- Pegawai (termasuk kepala sekolah & admin yang juga berperan Pegawai) ----------
@@ -60,7 +63,11 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/izin', [IzinController::class, 'store'])->name('izin.store');
         Route::delete('/izin/{pengajuan}', [IzinController::class, 'batal'])->name('izin.batal');
 
-        Route::view('/lembur', 'segera', ['judul' => 'Ajukan Lembur'])->name('lembur');
+        // Lembur
+        Route::get('/lembur', [LemburController::class, 'create'])->name('lembur');
+        Route::post('/lembur', [LemburController::class, 'store'])->name('lembur.store');
+        Route::delete('/lembur/{lembur}', [LemburController::class, 'batal'])->name('lembur.batal');
+
         Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas Saya'])->name('surat-tugas');
     });
 
