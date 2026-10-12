@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\DataPresensiController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Admin\PengajuanController as AdminPengajuanController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -90,8 +91,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     // ---------- Pegawai (termasuk kepala sekolah & admin yang juga berperan Pegawai) ----------
     Route::middleware('peran:'.Role::PEGAWAI)->prefix('pegawai')->name('pegawai.')->group(function () {
         Route::get('/beranda', [PegawaiController::class, 'beranda'])->name('beranda');
-        Route::view('/riwayat', 'segera', ['judul' => 'Riwayat'])->name('riwayat');
-        Route::view('/profil', 'segera', ['judul' => 'Profil'])->name('profil');
+        Route::get('/riwayat', [PegawaiController::class, 'riwayat'])->name('riwayat');
+        Route::get('/profil', [PegawaiController::class, 'profil'])->name('profil');
 
         // Izin & sakit
         Route::get('/izin', [IzinController::class, 'create'])->name('izin');
@@ -108,8 +109,11 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     // ---------- Administrator ----------
     Route::middleware('peran:'.Role::ADMIN)->prefix('admin')->name('admin.')->group(function () {
-        Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
         Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+
+        // Izin, Sakit & Lembur (SR-F18)
+        Route::get('/pengajuan', [AdminPengajuanController::class, 'index'])->name('pengajuan');
+        Route::put('/pengajuan/izin/{pengajuan}', [AdminPengajuanController::class, 'updateIzin'])->name('pengajuan.izin.update');
 
         // Pengaturan
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan');

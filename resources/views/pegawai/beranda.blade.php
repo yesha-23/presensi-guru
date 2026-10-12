@@ -99,6 +99,13 @@
                 <i data-lucide="scan-face" class="h-5 w-5"></i>
                 {{ $hariIni?->jam_datang ? 'Presensi pulang' : 'Presensi datang' }}
             </a>
+        @else
+            {{-- Ada tugas khusus / izin / sakit / libur: tombol tetap tampil tetapi nonaktif --}}
+            <button type="button" disabled aria-disabled="true"
+                    class="mt-4 flex w-full cursor-not-allowed items-center justify-center gap-2 rounded-2xl bg-gray-200 py-3.5 font-semibold text-gray-500">
+                <i data-lucide="scan-face" class="h-5 w-5"></i>
+                {{ ($kondisi['status'] ?? null) === 'Libur' ? 'Hari libur · tidak perlu presensi' : 'Tidak perlu presensi hari ini' }}
+            </button>
         @endif
     </div>
 
