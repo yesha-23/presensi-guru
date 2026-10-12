@@ -34,6 +34,10 @@
     {{-- ================= TAB SURAT TUGAS ================= --}}
     @include('persetujuan._surat')
 
+@elseif ($tab === 'koreksi')
+    {{-- ================= TAB KOREKSI PRESENSI ADMIN ================= --}}
+    @include('persetujuan._koreksi')
+
 @elseif ($tab !== 'izin')
     {{-- ================= TAB YANG BELUM DIBANGUN (Koreksi Presensi Admin) ================= --}}
     <div class="mt-6 rounded-2xl border border-dashed border-garis bg-white p-10 text-center text-gray-500">

@@ -18,6 +18,9 @@ use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use App\Models\SuratTugas;
 use App\Services\SuratTugasService;
+use App\Models\LogKoreksi;
+use App\Services\KoreksiPresensiService;
+use App\Notifications\Pemberitahuan;
 
 class PersetujuanController extends Controller
 {
@@ -44,7 +47,14 @@ class PersetujuanController extends Controller
         $menungguSurat = SuratTugas::with(['pegawai.unit', 'persetujuan.penyetuju', 'pembuat'])
             ->where('status', 'Menunggu')->oldest()->get()
             ->filter(fn ($s) => $layananSurat->bolehMemproses($penyetuju, $s))->values();
-            
+        
+        $layananKoreksi = app(KoreksiPresensiService::class);
+        $menungguKoreksi = LogKoreksi::with(['pengubah', 'target.user.unit'])
+            ->where('target_type', Presensi::class)
+            ->where('status_persetujuan', 'Menunggu')
+            ->oldest()->get()
+            ->filter(fn ($log) => $layananKoreksi->bolehMemproses($penyetuju, $log))->values();
+        
         // Tab sesuai peran
         $tabs = [
             'izin'   => ['Izin & Sakit', $menunggu->count()],
@@ -54,7 +64,7 @@ class PersetujuanController extends Controller
             $tabs['surat'] = ['Surat Tugas', $menungguSurat->count()];
         }
         if ($penyetuju->hasRole(Role::KEPALA_SEKOLAH)) {
-            $tabs['koreksi'] = ['Koreksi Presensi Admin', 0];
+            $tabs['koreksi'] = ['Koreksi Presensi Admin', $menungguKoreksi->count()];
         }
 
         $tab = array_key_exists($request->query('tab'), $tabs) ? $request->query('tab') : 'izin';
@@ -63,11 +73,16 @@ class PersetujuanController extends Controller
         $dipilih = $tab === 'izin' ? ($menunggu->firstWhere('id', $id) ?? $menunggu->first()) : null;
         $lemburDipilih = $tab === 'lembur' ? ($menungguLembur->firstWhere('id', $id) ?? $menungguLembur->first()) : null;
         $suratDipilih = $tab === 'surat' ? ($menungguSurat->firstWhere('id', $id) ?? $menungguSurat->first()) : null;
+        $koreksiDipilih = $tab === 'koreksi' ? ($menungguKoreksi->firstWhere('id', $id) ?? $menungguKoreksi->first()) : null;
 
         return view('persetujuan.index', [
             'judul'          => 'Persetujuan',
             'tabs'           => $tabs,
             'tab'            => $tab,
+
+            // Koreksi presensi admin
+            'menungguKoreksi' => $menungguKoreksi,
+            'koreksiDipilih'  => $koreksiDipilih,
 
             // Izin & sakit
             'menunggu'       => $menunggu,
@@ -211,6 +226,47 @@ class PersetujuanController extends Controller
 
         return redirect()->route('persetujuan', ['tab' => 'surat'])
             ->with('sukses', 'Surat tugas ditolak dan dikembalikan ke administrator.');
+    }
+
+    // ================= Koreksi presensi admin =================
+
+    public function setujuiKoreksi(Request $request, LogKoreksi $log, KoreksiPresensiService $layanan)
+    {
+        abort_unless($layanan->bolehMemproses($request->user(), $log), 403, 'Koreksi ini bukan wewenang Anda atau sudah diproses.');
+
+        $layanan->setujui($log, $request->user());
+
+        $log->pengubah?->notify(new Pemberitahuan(
+            'Koreksi presensi Anda tanggal '.$log->target->tanggal->translatedFormat('j F').' disetujui',
+            KoreksiPresensiService::ringkasan($log->nilai_lama, $log->nilai_baru),
+            route('admin.presensi', ['tanggal' => $log->target->tanggal->toDateString()]),
+            'berhasil'
+        ));
+
+        return redirect()->route('persetujuan', ['tab' => 'koreksi'])->with('sukses', 'Koreksi presensi disetujui dan diterapkan.');
+    }
+
+    public function tolakKoreksi(Request $request, LogKoreksi $log, KoreksiPresensiService $layanan)
+    {
+        abort_unless($layanan->bolehMemproses($request->user(), $log), 403, 'Koreksi ini bukan wewenang Anda atau sudah diproses.');
+
+        $request->validate([
+            'catatan' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'catatan.required' => 'Alasan penolakan wajib diisi.',
+            'catatan.min'      => 'Alasan penolakan minimal 5 karakter.',
+        ]);
+
+        $layanan->tolak($log, $request->user(), $request->input('catatan'));
+
+        $log->pengubah?->notify(new Pemberitahuan(
+            'Koreksi presensi Anda tanggal '.$log->target->tanggal->translatedFormat('j F').' ditolak',
+            'Alasan: '.$request->input('catatan'),
+            route('admin.presensi', ['tanggal' => $log->target->tanggal->toDateString()]),
+            'ditolak'
+        ));
+
+        return redirect()->route('persetujuan', ['tab' => 'koreksi'])->with('sukses', 'Koreksi presensi ditolak. Data tidak berubah.');
     }
 
     // ================= Helper =================

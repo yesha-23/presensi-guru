@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\SuratTugasController;
 use App\Http\Controllers\DokumenSuratController;
 use App\Http\Controllers\TtdController;
 use App\Http\Controllers\NotifikasiController;
+use App\Http\Controllers\Admin\DataPresensiController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -65,6 +66,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/persetujuan/lembur/{lembur}/tolak', [PersetujuanController::class, 'tolakLembur'])->name('persetujuan.lembur.tolak');
         Route::post('/persetujuan/surat/{surat}/setujui', [PersetujuanController::class, 'setujuiSurat'])->name('persetujuan.surat.setujui');
         Route::post('/persetujuan/surat/{surat}/tolak', [PersetujuanController::class, 'tolakSurat'])->name('persetujuan.surat.tolak');
+        Route::post('/persetujuan/koreksi/{log}/setujui', [PersetujuanController::class, 'setujuiKoreksi'])->name('persetujuan.koreksi.setujui');
+        Route::post('/persetujuan/koreksi/{log}/tolak', [PersetujuanController::class, 'tolakKoreksi'])->name('persetujuan.koreksi.tolak');
 
         // Gambar tanda tangan milik penyetuju
         Route::get('/ttd', [TtdController::class, 'tampil'])->name('ttd.tampil');
@@ -93,10 +96,14 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     // ---------- Administrator ----------
     Route::middleware('peran:'.Role::ADMIN)->prefix('admin')->name('admin.')->group(function () {
         Route::view('/dashboard', 'segera', ['judul' => 'Kehadiran hari ini'])->name('dashboard');
-        Route::view('/presensi', 'segera', ['judul' => 'Data Presensi'])->name('presensi');
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap & Laporan'])->name('rekap');
         Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
+
+        // Data Presensi
+        Route::get('/presensi', [DataPresensiController::class, 'index'])->name('presensi');
+        Route::get('/presensi/ekspor', [DataPresensiController::class, 'ekspor'])->name('presensi.ekspor');
+        Route::post('/presensi/koreksi', [DataPresensiController::class, 'koreksi'])->name('presensi.koreksi');
 
         // Data Pegawai: impor Excel
         Route::get('/pegawai/impor', [ImporPegawaiController::class, 'index'])->name('pegawai.impor');

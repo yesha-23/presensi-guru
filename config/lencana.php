@@ -13,6 +13,8 @@ return [
     'Alpa'           => 'bg-red-100 text-red-800',
     'Belum Presensi' => 'bg-red-100 text-red-800',
     'Libur'          => 'bg-gray-100 text-gray-700',
+    'Tidak Presensi Pulang' => 'bg-orange-100 text-orange-800',
+    'Tidak Perlu'           => 'bg-gray-100 text-gray-700',
 
     // Pengajuan & surat tugas
     'Menunggu'       => 'bg-yellow-100 text-yellow-800',
