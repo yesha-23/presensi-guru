@@ -69,6 +69,9 @@
                             'pegawai' => $s->pegawai->pluck('id')->values(),
                             'tanggal_mulai' => $s->tanggal_mulai->toDateString(),
                             'tanggal_selesai' => $s->tanggal_selesai->toDateString(),
+                            'jam_mulai' => $s->jam_mulai ? substr($s->jam_mulai, 0, 5) : '',
+                            'jam_selesai' => $s->jam_selesai ? substr($s->jam_selesai, 0, 5) : '',
+                            'keterangan' => $s->keterangan,
                             'lokasi' => $s->lokasi, 'jenis_kegiatan' => $s->jenis_kegiatan, 'sifat' => $s->sifat,
                             'kasus_khusus' => $s->kasus_khusus, 'lampiran' => (bool) $s->lampiran_path,
                             'url_update' => route('admin.surat-tugas.update', $s),
@@ -164,10 +167,24 @@
                 <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" class="{{ $kelasInput }}">
                 @error('tanggal_selesai') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
+            <label class="{{ $kelasLabel }}">Jam mulai <span class="font-normal text-gray-500">(opsional)</span>
+                <input type="time" name="jam_mulai" value="{{ old('jam_mulai') }}" class="{{ $kelasInput }}">
+                @error('jam_mulai') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
+            </label>
+            <label class="{{ $kelasLabel }}">Jam selesai <span class="font-normal text-gray-500">(opsional)</span>
+                <input type="time" name="jam_selesai" value="{{ old('jam_selesai') }}" class="{{ $kelasInput }}">
+                @error('jam_selesai') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
+            </label>
 
             <label class="{{ $kelasLabel }} sm:col-span-2">Lokasi
                 <input name="lokasi" value="{{ old('lokasi') }}" placeholder="Contoh: Kantor Dinas Pendidikan Sleman" class="{{ $kelasInput }}">
                 @error('lokasi') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
+            </label>
+
+            <label class="{{ $kelasLabel }} sm:col-span-2">Keterangan <span class="font-normal text-gray-500">(opsional · satu baris per poin)</span>
+                <textarea name="keterangan" rows="3" maxlength="500" class="{{ $kelasInput }}"
+                          placeholder="Contoh:&#10;Dresscode: batik&#10;Membawa laptop dan alat tulis&#10;Hadir 15 menit sebelum acara">{{ old('keterangan') }}</textarea>
+                @error('keterangan') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
 
             <div>
@@ -309,6 +326,9 @@
         form.elements['tanggal_mulai'].value = data?.tanggal_mulai ?? hariIni;
         form.elements['tanggal_selesai'].value = data?.tanggal_selesai ?? hariIni;
         form.elements['lokasi'].value = data?.lokasi ?? '';
+        form.elements['jam_mulai'].value = data?.jam_mulai ?? '';
+        form.elements['jam_selesai'].value = data?.jam_selesai ?? '';
+        form.elements['keterangan'].value = data?.keterangan ?? '';
         form.elements['jenis_kegiatan'].value = data?.jenis_kegiatan ?? 'Luar';
         form.elements['sifat'].value = data?.sifat ?? 'Terencana';
         form.elements['kasus_khusus'].checked = !!data?.kasus_khusus;

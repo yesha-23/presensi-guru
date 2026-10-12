@@ -26,15 +26,14 @@
     </div>
 @endif
 
-<div class="mt-5 grid gap-6 xl:grid-cols-[1fr_22rem] xl:items-start">
-    <div class="overflow-x-auto rounded-3xl border border-garis bg-gray-100 p-3 sm:p-5">
-        <div class="shadow-md">@include('surat-tugas._isi', $dataSurat)</div>
-    </div>
+<div class="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem] xl:items-start">
+    @include('surat-tugas._pratinjau')
 
     <div class="space-y-4">
         <div class="rounded-2xl border border-garis bg-white p-5 text-sm">
             <h2 class="font-bold">Rincian</h2>
             <dl class="mt-3 space-y-2">
+                <div class="flex justify-between gap-3"><dt class="text-gray-500">Waktu</dt><dd class="text-right font-semibold">{{ $surat->rentangJam() }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Pemberi tugas</dt><dd class="font-semibold">{{ $surat->pemberi_tugas }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Jenis</dt><dd class="font-semibold">{{ $surat->jenis_kegiatan === 'Dalam' ? 'Dalam sekolah (KDLM)' : 'Luar sekolah (KKLR)' }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Sifat</dt><dd class="font-semibold">{{ $surat->sifat }}</dd></div>

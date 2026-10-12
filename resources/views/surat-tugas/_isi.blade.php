@@ -82,7 +82,11 @@
                     <td style="{{ $sel }} text-align: center;">{{ $i + 1 }}</td>
                     <td style="{{ $sel }}">{{ $p->nama_lengkap }}</td>
                     <td style="{{ $sel }}">{{ $p->nip ?? '-' }}</td>
-                    <td style="{{ $sel }}">{{ $p->jabatan ?? $p->kategori }} · {{ $p->unit?->label() }}</td>
+                    @php
+                        $jabatan = $p->jabatan ?? $p->kategori;
+                        $unit = $p->unit?->label();
+                    @endphp
+                    <td style="{{ $sel }}">{{ $unit && ! str_contains((string) $jabatan, $unit) ? "{$jabatan} · {$unit}" : $jabatan }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -91,13 +95,14 @@
     <p style="margin: 0 0 8px;">untuk melaksanakan tugas sebagai berikut:</p>
 
     {{-- ================= TUGAS ================= --}}
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
         <thead>
             <tr>
-                <th style="{{ $th }} width: 0.9cm;">NO</th>
-                <th style="{{ $th }} width: 3.6cm;">HARI/TANGGAL</th>
+                <th style="{{ $th }} width: 0.8cm;">NO</th>
+                <th style="{{ $th }} width: 2.9cm;">HARI/TANGGAL</th>
+                <th style="{{ $th }} width: 2.2cm;">WAKTU</th>
                 <th style="{{ $th }}">KEGIATAN</th>
-                <th style="{{ $th }} width: 3.4cm;">TEMPAT</th>
+                <th style="{{ $th }} width: 2.7cm;">TEMPAT</th>
                 <th style="{{ $th }} width: 3.6cm;">KETERANGAN</th>
             </tr>
         </thead>
@@ -105,16 +110,25 @@
             <tr>
                 <td style="{{ $sel }} text-align: center;">1</td>
                 <td style="{{ $sel }} text-align: center;">{{ $rentang }}</td>
+                <td style="{{ $sel }} text-align: center;">{{ $surat->rentangJam() }}</td>
                 <td style="{{ $sel }} text-align: center;"><b>{{ $surat->perihal }}</b></td>
                 <td style="{{ $sel }} text-align: center;">{{ $surat->lokasi }}</td>
                 <td style="{{ $sel }} font-size: 9pt;">
-                    -Pemberi tugas: {{ $surat->pemberi_tugas }}<br>
-                    -{{ $surat->jenis_kegiatan === 'Dalam' ? 'Kegiatan dalam sekolah' : 'Kegiatan luar sekolah' }}<br>
-                    -Sifat: {{ $surat->sifat }}
+                    @forelse ($surat->poinKeterangan() as $poin)
+                        -{{ $poin }}@if (! $loop->last)<br>@endif
+                    @empty
+                        <div style="text-align: center;">-</div>
+                    @endforelse
                 </td>
             </tr>
         </tbody>
     </table>
+
+    <p style="margin: 0 0 8px; text-align: justify;">
+        Tugas ini diberikan oleh {{ $surat->pemberi_tugas }} dan merupakan
+        {{ $surat->jenis_kegiatan === 'Dalam' ? 'kegiatan dalam sekolah' : 'kegiatan luar sekolah' }}
+        yang bersifat {{ strtolower($surat->sifat) }}.
+    </p>
 
     <p style="margin: 0; text-align: justify;">
         Demikian surat tugas ini dibuat untuk dilaksanakan dengan penuh tanggung jawab. Atas perhatian dan
@@ -130,7 +144,7 @@
                     <div>Ketua Yayasan</div>
                     <div style="height: 2.2cm; margin: 4px 0;">
                         @if ($ketua['ttd'])
-                            <img src="{{ $ketua['ttd'] }}" alt="" style="height: 2.1cm;">
+                            <img src="{{ $ketua['ttd'] }}" alt="" style="height: 2.1cm; display: inline-block;">
                         @else
                             <div style="padding-top: 0.9cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
                         @endif
@@ -143,7 +157,7 @@
                 <div>Kepala Sekolah</div>
                 <div style="height: 2.2cm; margin: 4px 0;">
                     @if ($kepsek['ttd'] ?? null)
-                        <img src="{{ $kepsek['ttd'] }}" alt="" style="height: 2.1cm;">
+                        <img src="{{ $kepsek['ttd'] }}" alt="" style="height: 2.1cm; display: inline-block;">
                     @else
                         <div style="padding-top: 0.9cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
                     @endif

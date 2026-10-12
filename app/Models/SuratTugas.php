@@ -14,7 +14,7 @@ class SuratTugas extends Model
     protected $fillable = [
         'nomor_surat', 'perihal', 'pemberi_tugas', 'lokasi', 'jenis_kegiatan', 'sifat',
         'tanggal_mulai', 'tanggal_selesai', 'kasus_khusus', 'lampiran_path', 'pdf_path',
-        'status', 'dibuat_oleh',
+        'status', 'dibuat_oleh', 'jam_mulai', 'jam_selesai', 'keterangan',
     ];
 
     protected function casts(): array
@@ -69,5 +69,27 @@ class SuratTugas extends Model
         return $mulai->isSameMonth($selesai)
             ? $mulai->translatedFormat('j').'–'.$selesai->translatedFormat('j F Y')
             : $mulai->translatedFormat('j M').' – '.$selesai->translatedFormat('j M Y');
+    }
+
+    /** "08.00 – 09.30 WIB", "08.00 WIB – selesai", atau "-" */
+    public function rentangJam(): string
+    {
+        $jam = fn (?string $t) => $t ? str_replace(':', '.', substr($t, 0, 5)) : null;
+
+        return match (true) {
+            $this->jam_mulai && $this->jam_selesai => $jam($this->jam_mulai).' – '.$jam($this->jam_selesai).' WIB',
+            (bool) $this->jam_mulai                => $jam($this->jam_mulai).' WIB – selesai',
+            default                                => '-',
+        };
+    }
+
+    /** Keterangan dipecah per baris, untuk ditampilkan sebagai poin. */
+    public function poinKeterangan(): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', (string) $this->keterangan))
+            ->map(fn ($baris) => ltrim(trim($baris), '-• '))
+            ->filter()
+            ->values()
+            ->all();
     }
 }

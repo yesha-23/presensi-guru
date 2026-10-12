@@ -57,3 +57,21 @@ document.querySelectorAll('[data-toggle-sandi]').forEach((tombol) =>
         input.type = input.type === 'password' ? 'text' : 'password';
     })
 );
+
+// ---------- Pratinjau surat A4: perkecil agar muat di kolom ----------
+function skalaPratinjau() {
+    document.querySelectorAll('[data-pratinjau-wadah]').forEach((wadah) => {
+        const kertas = wadah.querySelector('[data-kertas]');
+        if (!kertas) return;
+
+        const skala = Math.min(1, wadah.clientWidth / kertas.offsetWidth);
+        kertas.style.transform = `scale(${skala})`;
+        wadah.style.height = `${kertas.offsetHeight * skala}px`;
+    });
+}
+
+if (document.querySelector('[data-pratinjau-wadah]')) {
+    skalaPratinjau();
+    window.addEventListener('resize', skalaPratinjau);
+    window.addEventListener('load', skalaPratinjau); // ulangi setelah gambar & font termuat
+}

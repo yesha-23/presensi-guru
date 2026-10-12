@@ -38,7 +38,7 @@
             @endif
             <div class="min-w-0 leading-tight">
                 <div class="font-bold">{{ $t['judul'] }}</div>
-                <div class="truncate text-xs text-gray-500">{{ $t['ket'] }}</div>
+                <div class="text-xs leading-snug text-gray-500">{{ $t['ket'] }}</div>
             </div>
         </div>
     @endforeach

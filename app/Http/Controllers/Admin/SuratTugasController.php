@@ -157,6 +157,12 @@ class SuratTugasController extends Controller
 
     private function validasi(Request $request, string $mode): array
     {
+        // Sebagian browser mengirim jam dalam format HH:MM:SS
+        $request->merge([
+            'jam_mulai'   => $request->filled('jam_mulai') ? substr($request->input('jam_mulai'), 0, 5) : null,
+            'jam_selesai' => $request->filled('jam_selesai') ? substr($request->input('jam_selesai'), 0, 5) : null,
+        ]);
+
         $validator = Validator::make($request->all(), [
             'perihal'         => ['required', 'string', 'max:200'],
             'pemberi_tugas'   => ['required', Rule::in(['Dinas', 'Yayasan', 'Lainnya'])],
@@ -164,7 +170,10 @@ class SuratTugasController extends Controller
             'pegawai.*'       => ['integer', Rule::exists('users', 'id')->where('status', 'Aktif')->whereNull('deleted_at')],
             'tanggal_mulai'   => ['required', 'date_format:Y-m-d'],
             'tanggal_selesai' => ['required', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
+            'jam_mulai'       => ['nullable', 'date_format:H:i'],
+            'jam_selesai'     => ['nullable', 'date_format:H:i'],
             'lokasi'          => ['required', 'string', 'max:150'],
+            'keterangan'      => ['nullable', 'string', 'max:500'],
             'jenis_kegiatan'  => ['required', Rule::in(['Dalam', 'Luar'])],
             'sifat'           => ['required', Rule::in(['Terencana', 'Mendadak'])],
             'lampiran'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
@@ -173,14 +182,31 @@ class SuratTugasController extends Controller
             'pegawai.required'               => 'Pilih minimal satu pegawai yang ditugaskan.',
             'pegawai.min'                    => 'Pilih minimal satu pegawai yang ditugaskan.',
             'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
+            'date_format'                    => 'Format :attribute tidak valid.',
             'lampiran.mimes'                 => 'Lampiran harus berformat PDF, JPG, atau PNG.',
             'lampiran.max'                   => 'Ukuran lampiran maksimal 2 MB.',
             'max'                            => ':attribute maksimal :max karakter.',
         ], [
             'perihal' => 'Perihal', 'pemberi_tugas' => 'Pemberi tugas', 'tanggal_mulai' => 'Tanggal mulai',
-            'tanggal_selesai' => 'Tanggal selesai', 'lokasi' => 'Lokasi',
+            'tanggal_selesai' => 'Tanggal selesai', 'jam_mulai' => 'Jam mulai', 'jam_selesai' => 'Jam selesai',
+            'lokasi' => 'Lokasi', 'keterangan' => 'Keterangan',
             'jenis_kegiatan' => 'Jenis kegiatan', 'sifat' => 'Sifat',
         ]);
+
+        // Jam selesai hanya boleh diisi bersama jam mulai, dan harus setelahnya
+        $validator->after(function ($v) use ($request) {
+            if ($v->errors()->hasAny(['jam_mulai', 'jam_selesai'])) {
+                return;
+            }
+            $mulai = $request->input('jam_mulai');
+            $selesai = $request->input('jam_selesai');
+
+            if ($selesai && ! $mulai) {
+                $v->errors()->add('jam_mulai', 'Isi jam mulai jika jam selesai diisi.');
+            } elseif ($mulai && $selesai && $selesai <= $mulai) {
+                $v->errors()->add('jam_selesai', 'Jam selesai harus setelah jam mulai.');
+            }
+        });
 
         if ($validator->fails()) {
             throw new HttpResponseException(back()->withErrors($validator)->withInput()->with('modal', $mode));

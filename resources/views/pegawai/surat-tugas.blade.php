@@ -32,11 +32,24 @@
                 <dd class="font-semibold">{{ $s->nomor_surat ?? 'Menunggu persetujuan' }}</dd>
                 <dt class="text-gray-500">Tanggal</dt>
                 <dd class="font-semibold">{{ $s->rentangTanggal() }}</dd>
+                <dt class="text-gray-500">Waktu</dt>
+                <dd class="font-semibold">{{ $s->rentangJam() }}</dd>
                 <dt class="text-gray-500">Pemberi</dt>
                 <dd class="font-semibold">{{ $s->pemberi_tugas }}</dd>
                 <dt class="text-gray-500">Lokasi</dt>
                 <dd class="font-semibold">{{ $s->lokasi }}</dd>
             </dl>
+            
+            @if ($s->poinKeterangan())
+                <div class="mt-3 rounded-xl bg-yellow-50 p-3 text-sm text-yellow-900">
+                    <div class="font-semibold">Keterangan</div>
+                    <ul class="mt-1 list-disc pl-5">
+                        @foreach ($s->poinKeterangan() as $poin)
+                            <li>{{ $poin }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            @endif
 
             @if ($s->status === 'Disetujui' && $s->pdf_path)
                 <a href="{{ route('surat-tugas.pdf', $s) }}"
