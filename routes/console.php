@@ -18,3 +18,8 @@ Schedule::command('presensi:pengingat')
 Schedule::command('presensi:tutup-hari')
     ->dailyAt('23:55')
     ->withoutOverlapping();
+
+// Rekap mingguan untuk rapat evaluasi hari Senin (SR-F27)
+Schedule::command('presensi:rekap-mingguan')
+    ->weeklyOn(0, '06:00') // Minggu pukul 06.00
+    ->withoutOverlapping();

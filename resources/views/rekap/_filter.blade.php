@@ -1,0 +1,126 @@
+@php
+    $modePkg = $modePkg ?? false;
+
+    $kelasKotak = 'flex h-10 min-w-0 items-center gap-2 rounded-xl border border-garis bg-white px-2.5 text-sm focus-within:border-navy md:px-3';
+    $kelasIsi = 'h-full w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0';
+    $kelasIkon = 'hidden h-4 w-4 shrink-0 text-gray-400 md:block';
+
+    // Laptop: isian berbagi lebar secara merata. Di Laporan PKG, unit lebih sempit dan semester mengisi sisanya.
+    $lebarUnit = $modePkg ? 'md:w-56 md:shrink-0' : 'md:flex-1';
+
+    // Pilihan bulan berbahasa Indonesia: 18 bulan terakhir (+ bulan terpilih bila di luar daftar)
+    $pilihanBulan = collect(range(0, 17))
+        ->map(fn ($i) => today()->startOfMonth()->subMonths($i))
+        ->push($mulai->copy()->startOfMonth())
+        ->unique(fn ($b) => $b->format('Y-m'))
+        ->sortByDesc(fn ($b) => $b->format('Y-m'))
+        ->values();
+@endphp
+
+{{-- HP: grid 6 kolom (2 baris). Laptop: satu baris penuh tanpa celah. --}}
+<form method="GET" class="mt-4 grid grid-cols-6 gap-2 rounded-2xl border border-garis bg-white p-3 md:flex md:items-center">
+
+    {{-- ===== Unit ===== --}}
+    @if ($bisaPilihUnit)
+        <label class="{{ $kelasKotak }} col-span-2 {{ $lebarUnit }}">
+            <i data-lucide="building-2" class="{{ $kelasIkon }}"></i>
+            <span class="sr-only">Unit</span>
+            <select name="unit" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                <option value="">Semua unit</option>
+                @foreach ($units as $u)
+                    <option value="{{ $u->id }}" @selected($unit?->id === $u->id)>{{ $u->label() }}</option>
+                @endforeach
+            </select>
+        </label>
+    @else
+        <span class="col-span-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-krem px-3 text-sm font-semibold md:justify-start {{ $lebarUnit }}">
+            <i data-lucide="building-2" class="{{ $kelasIkon }}"></i> {{ $unit->label() }}
+        </span>
+    @endif
+
+    @if ($modePkg)
+        {{-- ===== Laporan PKG: semester ===== --}}
+        <label class="{{ $kelasKotak }} col-span-3 md:flex-1">
+            <i data-lucide="calendar-range" class="{{ $kelasIkon }}"></i>
+            <span class="sr-only">Semester</span>
+            <select name="semester" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                @forelse ($semesters as $s)
+                    <option value="{{ $s->id }}" @selected($semester?->id === $s->id)>
+                        Semester {{ $s->jenis === 'Ganjil' ? '1' : '2' }} · {{ $s->tahun_ajaran }}
+                        ({{ $s->tanggal_mulai->translatedFormat('j M') }} – {{ $s->tanggal_selesai->translatedFormat('j M') }})
+                    </option>
+                @empty
+                    <option value="">Belum ada semester</option>
+                @endforelse
+            </select>
+        </label>
+    @else
+        {{-- ===== Rekap: kelompok & jenis periode ===== --}}
+        <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
+            <i data-lucide="users" class="{{ $kelasIkon }}"></i>
+            <span class="sr-only">Kelompok</span>
+            <select name="kelompok" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                <option value="">Guru & Staf</option>
+                <option value="Guru" @selected($kelompok === 'Guru')>Guru</option>
+                <option value="Staf" @selected($kelompok === 'Staf')>Staf</option>
+            </select>
+        </label>
+
+        <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
+            <i data-lucide="calendar-range" class="{{ $kelasIkon }}"></i>
+            <span class="sr-only">Periode</span>
+            <select name="periode" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                @foreach (['mingguan' => 'Mingguan', 'bulanan' => 'Bulanan', 'semester' => 'Semester', 'rentang' => 'Rentang tanggal'] as $nilai => $teks)
+                    <option value="{{ $nilai }}" @selected($jenis === $nilai)>{{ $teks }}</option>
+                @endforeach
+            </select>
+        </label>
+
+        {{-- ===== Isian sesuai jenis periode (baris 2 di HP) ===== --}}
+        @if ($jenis === 'mingguan')
+            <label class="{{ $kelasKotak }} col-span-4 md:flex-1" title="Pilih tanggal mana pun dalam minggu tersebut">
+                <span class="sr-only">Minggu</span>
+                <input type="date" name="tanggal" value="{{ $mulai->toDateString() }}" onchange="this.form.submit()" class="{{ $kelasIsi }}">
+            </label>
+        @elseif ($jenis === 'semester')
+            <label class="{{ $kelasKotak }} col-span-4 md:flex-1">
+                <span class="sr-only">Semester</span>
+                <select name="semester" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                    @foreach ($semesters as $s)
+                        <option value="{{ $s->id }}" @selected($semester?->id === $s->id)>
+                            Semester {{ $s->jenis === 'Ganjil' ? '1' : '2' }} · {{ $s->tahun_ajaran }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+        @elseif ($jenis === 'rentang')
+            <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
+                <span class="sr-only">Tanggal mulai</span>
+                <input type="date" name="mulai" value="{{ $mulai->toDateString() }}" onchange="this.form.submit()" class="{{ $kelasIsi }}">
+            </label>
+            <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
+                <span class="sr-only">Tanggal selesai</span>
+                <input type="date" name="selesai" value="{{ $selesai->toDateString() }}" onchange="this.form.submit()" class="{{ $kelasIsi }}">
+            </label>
+        @else
+            <label class="{{ $kelasKotak }} col-span-4 md:flex-1">
+                <i data-lucide="calendar" class="{{ $kelasIkon }}"></i>
+                <span class="sr-only">Bulan</span>
+                <select name="bulan" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+                    @foreach ($pilihanBulan as $b)
+                        <option value="{{ $b->format('Y-m') }}" @selected($b->format('Y-m') === $mulai->format('Y-m'))>
+                            {{ $b->translatedFormat('F Y') }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+        @endif
+    @endif
+
+    {{-- ===== Reset: seukuran isinya, paling kanan ===== --}}
+    <a href="{{ route($modePkg ? 'pkg' : 'rekap') }}" aria-label="Reset filter" title="Reset filter"
+       class="{{ $modePkg ? 'col-span-1' : 'col-span-2' }} inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-garis text-sm font-semibold hover:bg-gray-50 md:shrink-0 md:px-4">
+        <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
+        <span class="{{ $modePkg ? 'hidden md:inline' : '' }}">Reset</span>
+    </a>
+</form>

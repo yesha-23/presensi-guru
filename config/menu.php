@@ -9,22 +9,22 @@ return [
         ['label' => 'Surat Tugas',          'route' => 'admin.surat-tugas', 'ikon' => 'briefcase'],
         ['label' => 'Kalender Akademik',    'route' => 'admin.kalender',    'ikon' => 'calendar'],
         ['label' => 'Data Pegawai',         'route' => 'admin.pegawai',     'ikon' => 'users'],
-        ['label' => 'Rekap & Laporan',      'route' => 'admin.rekap',       'ikon' => 'chart-column'],
+        ['label' => 'Rekap & Laporan',      'route' => 'rekap',       'ikon' => 'chart-column'],
         ['label' => 'Pengaturan',           'route' => 'admin.pengaturan',  'ikon' => 'sliders-horizontal'],
     ],
 
     'Kepala Sekolah' => [
         ['label' => 'Persetujuan',           'route' => 'persetujuan',        'ikon' => 'file-check'],
         ['label' => 'Pantau Kehadiran',      'route' => 'kepsek.pantau',      'ikon' => 'clock'],
-        ['label' => 'Laporan PKG',           'route' => 'kepsek.pkg',         'ikon' => 'chart-column'],
-        ['label' => 'Rekap Bulanan',         'route' => 'kepsek.rekap',       'ikon' => 'calendar'],
+        ['label' => 'Laporan PKG',           'route' => 'pkg',         'ikon' => 'chart-column'],
+        ['label' => 'Rekap Bulanan',         'route' => 'rekap',       'ikon' => 'calendar'],
     ],
 
     'Ketua Yayasan' => [
         ['label' => 'Ringkasan Yayasan',       'route' => 'yayasan.ringkasan',   'ikon' => 'layout-grid'],
         ['label' => 'Persetujuan',             'route' => 'persetujuan',         'ikon' => 'pen-line'],
-        ['label' => 'Laporan PKG',             'route' => 'yayasan.pkg',         'ikon' => 'chart-column'],
-        ['label' => 'Rekap Bulanan',           'route' => 'yayasan.rekap',       'ikon' => 'calendar'],
+        ['label' => 'Laporan PKG',             'route' => 'pkg',         'ikon' => 'chart-column'],
+        ['label' => 'Rekap Bulanan',           'route' => 'rekap',       'ikon' => 'calendar'],
     ],
 
     'Pegawai' => [

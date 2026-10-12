@@ -19,6 +19,7 @@ use App\Http\Controllers\DokumenSuratController;
 use App\Http\Controllers\TtdController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\Admin\DataPresensiController;
+use App\Http\Controllers\RekapController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -74,6 +75,16 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/ttd', [TtdController::class, 'simpan'])->name('ttd.simpan');
     });
 
+    // ---------- Rekap & Laporan PKG: administrator, kepala sekolah, ketua yayasan ----------
+    Route::middleware('peran:'.Role::KEPALA_SEKOLAH.','.Role::ADMIN.','.Role::KETUA_YAYASAN)->group(function () {
+        Route::get('/rekap', [RekapController::class, 'rekap'])->name('rekap');
+        Route::get('/rekap/excel', [RekapController::class, 'rekapExcel'])->name('rekap.excel');
+        Route::get('/rekap/pdf', [RekapController::class, 'rekapPdf'])->name('rekap.pdf');
+        Route::get('/laporan-pkg', [RekapController::class, 'pkg'])->name('pkg');
+        Route::get('/laporan-pkg/excel', [RekapController::class, 'pkgExcel'])->name('pkg.excel');
+        Route::get('/laporan-pkg/pdf', [RekapController::class, 'pkgPdf'])->name('pkg.pdf');
+    });
+
     // ---------- Pegawai (termasuk kepala sekolah & admin yang juga berperan Pegawai) ----------
     Route::middleware('peran:'.Role::PEGAWAI)->prefix('pegawai')->name('pegawai.')->group(function () {
         Route::get('/beranda', [PegawaiController::class, 'beranda'])->name('beranda');
@@ -97,7 +108,6 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     Route::middleware('peran:'.Role::ADMIN)->prefix('admin')->name('admin.')->group(function () {
         Route::view('/dashboard', 'segera', ['judul' => 'Kehadiran hari ini'])->name('dashboard');
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
-        Route::view('/rekap', 'segera', ['judul' => 'Rekap & Laporan'])->name('rekap');
         Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
 
         // Data Presensi
@@ -149,14 +159,10 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     // ---------- Kepala Sekolah ----------
     Route::middleware('peran:'.Role::KEPALA_SEKOLAH)->prefix('kepsek')->name('kepsek.')->group(function () {
         Route::view('/pantau', 'segera', ['judul' => 'Pantau Kehadiran'])->name('pantau');
-        Route::view('/pkg', 'segera', ['judul' => 'Laporan PKG'])->name('pkg');
-        Route::view('/rekap', 'segera', ['judul' => 'Rekap Bulanan'])->name('rekap');
     });
 
     // ---------- Ketua Yayasan ----------
     Route::middleware('peran:'.Role::KETUA_YAYASAN)->prefix('yayasan')->name('yayasan.')->group(function () {
         Route::view('/ringkasan', 'segera', ['judul' => 'Ringkasan Yayasan'])->name('ringkasan');
-        Route::view('/pkg', 'segera', ['judul' => 'Laporan PKG'])->name('pkg');
-        Route::view('/rekap', 'segera', ['judul' => 'Rekap Bulanan'])->name('rekap');
     });
 });
