@@ -14,6 +14,9 @@ use App\Http\Controllers\PresensiController;
 use App\Models\Role;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\LemburController;
+use App\Http\Controllers\Admin\SuratTugasController;
+use App\Http\Controllers\DokumenSuratController;
+use App\Http\Controllers\TtdController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -43,6 +46,10 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     // Bukti izin/sakit: dicek di controller (pemilik, penyetuju, administrator)
     Route::get('/pengajuan/{pengajuan}/bukti', BuktiPengajuanController::class)->name('pengajuan.bukti');
 
+    // Dokumen surat tugas: dicek di controller (admin, pegawai ditugaskan, penyetuju)
+    Route::get('/surat-tugas/{surat}/pdf', [DokumenSuratController::class, 'pdf'])->name('surat-tugas.pdf');
+    Route::get('/surat-tugas/{surat}/lampiran', [DokumenSuratController::class, 'lampiran'])->name('surat-tugas.lampiran');
+
     // ---------- Persetujuan bersama: kepala sekolah, administrator, ketua yayasan ----------
     Route::middleware('peran:'.Role::KEPALA_SEKOLAH.','.Role::ADMIN.','.Role::KETUA_YAYASAN)->group(function () {
         Route::get('/persetujuan', [PersetujuanController::class, 'index'])->name('persetujuan');
@@ -50,6 +57,12 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/persetujuan/izin/{pengajuan}/tolak', [PersetujuanController::class, 'tolak'])->name('persetujuan.izin.tolak');
         Route::post('/persetujuan/lembur/{lembur}/setujui', [PersetujuanController::class, 'setujuiLembur'])->name('persetujuan.lembur.setujui');
         Route::post('/persetujuan/lembur/{lembur}/tolak', [PersetujuanController::class, 'tolakLembur'])->name('persetujuan.lembur.tolak');
+        Route::post('/persetujuan/surat/{surat}/setujui', [PersetujuanController::class, 'setujuiSurat'])->name('persetujuan.surat.setujui');
+        Route::post('/persetujuan/surat/{surat}/tolak', [PersetujuanController::class, 'tolakSurat'])->name('persetujuan.surat.tolak');
+
+        // Gambar tanda tangan milik penyetuju
+        Route::get('/ttd', [TtdController::class, 'tampil'])->name('ttd.tampil');
+        Route::post('/ttd', [TtdController::class, 'simpan'])->name('ttd.simpan');
     });
 
     // ---------- Pegawai (termasuk kepala sekolah & admin yang juga berperan Pegawai) ----------
@@ -68,7 +81,7 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/lembur', [LemburController::class, 'store'])->name('lembur.store');
         Route::delete('/lembur/{lembur}', [LemburController::class, 'batal'])->name('lembur.batal');
 
-        Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas Saya'])->name('surat-tugas');
+        Route::get('/surat-tugas', [PegawaiController::class, 'suratTugas'])->name('surat-tugas');
     });
 
     // ---------- Administrator ----------
@@ -76,7 +89,6 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::view('/dashboard', 'segera', ['judul' => 'Kehadiran hari ini'])->name('dashboard');
         Route::view('/presensi', 'segera', ['judul' => 'Data Presensi'])->name('presensi');
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
-        Route::view('/surat-tugas', 'segera', ['judul' => 'Surat Tugas'])->name('surat-tugas');
         Route::view('/rekap', 'segera', ['judul' => 'Rekap & Laporan'])->name('rekap');
         Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
 
@@ -111,6 +123,14 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/kalender/semester', [KalenderController::class, 'simpanSemester'])->name('kalender.semester');
         Route::put('/kalender/{entri}', [KalenderController::class, 'update'])->name('kalender.update');
         Route::delete('/kalender/{entri}', [KalenderController::class, 'destroy'])->name('kalender.destroy');
+
+        // Surat Tugas
+        Route::get('/surat-tugas', [SuratTugasController::class, 'index'])->name('surat-tugas');
+        Route::post('/surat-tugas', [SuratTugasController::class, 'store'])->name('surat-tugas.store');
+        Route::get('/surat-tugas/{surat}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
+        Route::put('/surat-tugas/{surat}', [SuratTugasController::class, 'update'])->name('surat-tugas.update');
+        Route::post('/surat-tugas/{surat}/kirim', [SuratTugasController::class, 'kirim'])->name('surat-tugas.kirim');
+        Route::delete('/surat-tugas/{surat}', [SuratTugasController::class, 'destroy'])->name('surat-tugas.destroy');
     });
 
     // ---------- Kepala Sekolah ----------

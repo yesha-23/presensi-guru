@@ -16,6 +16,8 @@ use App\Services\PersetujuanService;
 use App\Services\StatusHarianService;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
+use App\Models\SuratTugas;
+use App\Services\SuratTugasService;
 
 class PersetujuanController extends Controller
 {
@@ -38,13 +40,18 @@ class PersetujuanController extends Controller
         $menungguLembur = Lembur::with(['user.unit', 'user.roles'])
             ->where('status', 'Menunggu')->oldest()->get()->filter($boleh)->values();
 
+        $layananSurat = app(SuratTugasService::class);
+        $menungguSurat = SuratTugas::with(['pegawai.unit', 'persetujuan.penyetuju', 'pembuat'])
+            ->where('status', 'Menunggu')->oldest()->get()
+            ->filter(fn ($s) => $layananSurat->bolehMemproses($penyetuju, $s))->values();
+            
         // Tab sesuai peran
         $tabs = [
             'izin'   => ['Izin & Sakit', $menunggu->count()],
             'lembur' => ['Lembur', $menungguLembur->count()],
         ];
         if ($penyetuju->hasRole(Role::KEPALA_SEKOLAH) || $penyetuju->hasRole(Role::KETUA_YAYASAN)) {
-            $tabs['surat'] = ['Surat Tugas', 0];
+            $tabs['surat'] = ['Surat Tugas', $menungguSurat->count()];
         }
         if ($penyetuju->hasRole(Role::KEPALA_SEKOLAH)) {
             $tabs['koreksi'] = ['Koreksi Presensi Admin', 0];
@@ -55,6 +62,7 @@ class PersetujuanController extends Controller
 
         $dipilih = $tab === 'izin' ? ($menunggu->firstWhere('id', $id) ?? $menunggu->first()) : null;
         $lemburDipilih = $tab === 'lembur' ? ($menungguLembur->firstWhere('id', $id) ?? $menungguLembur->first()) : null;
+        $suratDipilih = $tab === 'surat' ? ($menungguSurat->firstWhere('id', $id) ?? $menungguSurat->first()) : null;
 
         return view('persetujuan.index', [
             'judul'          => 'Persetujuan',
@@ -74,6 +82,12 @@ class PersetujuanController extends Controller
             'infoLembur'     => $lemburDipilih ? $this->infoLembur($lemburDipilih) : null,
             'diprosesLembur' => Lembur::with('user')
                 ->where('disetujui_oleh', $penyetuju->id)->latest('diproses_at')->limit(5)->get(),
+            
+            // Surat tugas
+            'menungguSurat'  => $menungguSurat,
+            'suratDipilih'   => $suratDipilih,
+            'dataSurat'      => $suratDipilih ? $layananSurat->dataSurat($suratDipilih) : null,
+            'ttdSaya'        => $penyetuju->ttd_path,
         ]);
     }
 
@@ -159,6 +173,44 @@ class PersetujuanController extends Controller
 
         return redirect()->route('persetujuan', ['tab' => 'lembur'])
             ->with('sukses', "Lembur {$lembur->user->nama_lengkap} ditolak.");
+    }
+
+    // ================= Surat tugas =================
+
+    public function setujuiSurat(Request $request, SuratTugas $surat, SuratTugasService $layanan)
+    {
+        $user = $request->user();
+        abort_unless($layanan->bolehMemproses($user, $surat), 403, 'Surat tugas ini bukan wewenang Anda atau sudah diproses.');
+
+        if (! $user->ttd_path) {
+            return back()->with('galat', 'Unggah gambar tanda tangan Anda terlebih dahulu.');
+        }
+
+        $layanan->setujui($surat, $user);
+        $surat->refresh();
+
+        $pesan = $surat->status === 'Disetujui'
+            ? "Surat tugas disetujui dan diterbitkan dengan nomor {$surat->nomor_surat}."
+            : 'Surat tugas ditandatangani dan diteruskan ke Ketua Yayasan.';
+
+        return redirect()->route('persetujuan', ['tab' => 'surat'])->with('sukses', $pesan);
+    }
+
+    public function tolakSurat(Request $request, SuratTugas $surat, SuratTugasService $layanan)
+    {
+        abort_unless($layanan->bolehMemproses($request->user(), $surat), 403, 'Surat tugas ini bukan wewenang Anda atau sudah diproses.');
+
+        $request->validate([
+            'catatan' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'catatan.required' => 'Catatan penolakan wajib diisi.',
+            'catatan.min'      => 'Catatan penolakan minimal 5 karakter.',
+        ]);
+
+        $layanan->tolak($surat, $request->user(), $request->input('catatan'));
+
+        return redirect()->route('persetujuan', ['tab' => 'surat'])
+            ->with('sukses', 'Surat tugas ditolak dan dikembalikan ke administrator.');
     }
 
     // ================= Helper =================

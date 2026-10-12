@@ -40,4 +40,34 @@ class SuratTugas extends Model
     {
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
+
+    /** Status untuk ditampilkan: Menunggu dirinci per tahap; Disetujui yang sudah lewat = Selesai. */
+    public function labelStatus(): string
+    {
+        if ($this->status === 'Menunggu') {
+            $aktif = $this->persetujuan->where('status', 'Menunggu')->sortBy('urutan')->first();
+
+            return $aktif?->urutan === 2 ? 'Menunggu Ketua Yayasan' : 'Menunggu Kepala Sekolah';
+        }
+
+        if ($this->status === 'Disetujui' && $this->tanggal_selesai->lt(today())) {
+            return 'Selesai';
+        }
+
+        return $this->status;
+    }
+
+    public function rentangTanggal(): string
+    {
+        $mulai = $this->tanggal_mulai;
+        $selesai = $this->tanggal_selesai;
+
+        if ($mulai->equalTo($selesai)) {
+            return $mulai->translatedFormat('j F Y');
+        }
+
+        return $mulai->isSameMonth($selesai)
+            ? $mulai->translatedFormat('j').'–'.$selesai->translatedFormat('j F Y')
+            : $mulai->translatedFormat('j M').' – '.$selesai->translatedFormat('j M Y');
+    }
 }

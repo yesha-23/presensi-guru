@@ -30,10 +30,14 @@
     {{-- ================= TAB LEMBUR ================= --}}
     @include('persetujuan._lembur')
 
+@elseif ($tab === 'surat')
+    {{-- ================= TAB SURAT TUGAS ================= --}}
+    @include('persetujuan._surat')
+
 @elseif ($tab !== 'izin')
-    {{-- ================= TAB LAIN (modul berikutnya) ================= --}}
+    {{-- ================= TAB YANG BELUM DIBANGUN (Koreksi Presensi Admin) ================= --}}
     <div class="mt-6 rounded-2xl border border-dashed border-garis bg-white p-10 text-center text-gray-500">
-        Persetujuan {{ strtolower($tabs[$tab][0] ?? '') }} dibangun pada modul berikutnya.
+        Persetujuan {{ strtolower($tabs[$tab][0] ?? '') }} dibangun pada modul Data Presensi.
     </div>
 
 @else

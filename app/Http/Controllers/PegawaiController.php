@@ -52,4 +52,18 @@ class PegawaiController extends Controller
             'salam'             => $salam,
         ]);
     }
+
+    public function suratTugas(Request $request)
+    {
+        $surat = $request->user()->suratTugas()
+            ->with('persetujuan')
+            ->whereIn('surat_tugas.status', ['Menunggu', 'Disetujui'])
+            ->orderByDesc('tanggal_mulai')
+            ->get();
+
+        return view('pegawai.surat-tugas', [
+            'judul' => 'Surat Tugas Saya',
+            'surat' => $surat,
+        ]);
+    }
 }

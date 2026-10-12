@@ -20,6 +20,8 @@ return [
     'Ditolak'        => 'bg-red-100 text-red-800',
     'Draf'           => 'bg-gray-100 text-gray-700',
     'Selesai'        => 'bg-gray-100 text-gray-700',
+    'Menunggu Kepala Sekolah' => 'bg-yellow-100 text-yellow-800',
+    'Menunggu Ketua Yayasan'  => 'bg-yellow-100 text-yellow-800',
 
     // Data pegawai
     'Aktif'          => 'bg-emerald-50 text-emerald-800',
