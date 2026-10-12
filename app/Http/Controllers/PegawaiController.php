@@ -22,6 +22,12 @@ class PegawaiController extends Controller
         $kondisi = $jadwal->kondisiKhusus($user, $sekarang);
         $jadwalHariIni = $kondisi ? null : $jadwal->jadwal($user, $sekarang);
 
+        // Batas presensi datang hari ini (paling lambat jam pulang)
+        $batasDatang = $jadwalHariIni
+            ? \Carbon\Carbon::parse($sekarang->toDateString().' '.\App\Models\Pengaturan::ambil('batas_presensi_datang', '12:00'))
+                ->min($jadwalHariIni['pulang'])
+            : null;
+
         $bulanIni = Presensi::where('user_id', $user->id)
             ->whereYear('tanggal', $sekarang->year)
             ->whereMonth('tanggal', $sekarang->month)
@@ -46,6 +52,7 @@ class PegawaiController extends Controller
             'user'              => $user,
             'hariIni'           => $hariIni,
             'kondisi'           => $kondisi,
+            'batasDatang'       => $batasDatang,
             'jadwalHariIni'     => $jadwalHariIni,
             'rekap'             => $rekap,
             'pengajuanTerakhir' => PengajuanIzin::where('user_id', $user->id)->latest()->first(),

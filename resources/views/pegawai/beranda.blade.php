@@ -10,6 +10,7 @@
             : 'Bukan hari kerja');
 
     $lengkap = $hariIni?->jam_datang && $hariIni?->jam_pulang;
+    $lewatBatas = $batasDatang && ! $hariIni?->jam_datang && now()->gt($batasDatang);
 @endphp
 
 {{-- ================= HEADER MERAH ================= --}}
@@ -63,7 +64,9 @@
                 @if ($hariIni?->status_datang === 'Terlambat')
                     <div class="mt-1 text-xs text-orange-800">Terlambat {{ \App\Models\Presensi::formatDetik($hariIni->detik_terlambat) }}</div>
                 @elseif ($jadwalHariIni)
-                    <div class="mt-1 text-xs text-gray-500">Jadwal {{ $jadwalHariIni['masuk']->format('H.i') }}</div>
+                    <div class="mt-1 text-xs text-gray-500">
+                        Jadwal {{ $jadwalHariIni['masuk']->format('H.i') }} · batas {{ $batasDatang->format('H.i') }}
+                    </div>
                 @endif
             </div>
 
@@ -83,6 +86,12 @@
         @if ($lengkap)
             <div class="mt-4 rounded-2xl bg-emerald-50 py-3.5 text-center text-sm font-semibold text-emerald-800">
                 Presensi hari ini sudah lengkap
+            </div>
+        @elseif ($lewatBatas)
+            <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
+                <b>Batas presensi datang ({{ $batasDatang->format('H.i') }}) sudah lewat.</b>
+                Hari ini akan tercatat Alpa, kecuali ada izin, sakit, atau tugas khusus yang disetujui.
+                <a href="{{ route('pegawai.izin') }}" class="font-semibold underline">Ajukan sakit</a>
             </div>
         @elseif (! $kondisi)
             <a href="{{ route('presensi.scan') }}"

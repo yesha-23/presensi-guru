@@ -17,6 +17,7 @@ use App\Http\Controllers\LemburController;
 use App\Http\Controllers\Admin\SuratTugasController;
 use App\Http\Controllers\DokumenSuratController;
 use App\Http\Controllers\TtdController;
+use App\Http\Controllers\NotifikasiController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -42,6 +43,11 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
     Route::get('/dashboard', fn () => redirect()->route(auth()->user()->rutePeran()))->name('dashboard');
+
+    // Notifikasi (lonceng)
+    Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi');
+    Route::get('/notifikasi/{id}/buka', [NotifikasiController::class, 'buka'])->name('notifikasi.buka');
+    Route::post('/notifikasi/baca-semua', [NotifikasiController::class, 'bacaSemua'])->name('notifikasi.baca-semua');
 
     // Bukti izin/sakit: dicek di controller (pemilik, penyetuju, administrator)
     Route::get('/pengajuan/{pengajuan}/bukti', BuktiPengajuanController::class)->name('pengajuan.bukti');

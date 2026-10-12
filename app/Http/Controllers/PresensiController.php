@@ -103,6 +103,25 @@ class PresensiController extends Controller
         }
 
         $j = $jadwal->jadwal($user, $waktu);
+
+        // Batas presensi datang (aturan yayasan): lewat batas, presensi datang ditolak;
+        // di akhir hari tercatat Alpa kecuali ada izin/sakit/tugas yang disetujui.
+        if (! $presensi->jam_datang) {
+            $batasDatang = Carbon::parse($waktu->toDateString().' '.Pengaturan::ambil('batas_presensi_datang', '12:00'))
+                ->min($j['pulang']);
+
+            if ($waktu->gt($batasDatang)) {
+                return response()->json([
+                    'hasil' => 'info',
+                    'judul' => 'Batas presensi datang sudah lewat',
+                    'nama'  => $user->nama_lengkap,
+                    'pesan' => 'Presensi datang hanya dapat dilakukan sampai pukul '.$batasDatang->format('H.i')
+                        .'. Hari ini akan tercatat Alpa, kecuali Anda memiliki izin, sakit, atau tugas khusus yang disetujui. '
+                        .'Jika sakit, ajukan Sakit paling lambat besok. Untuk kendala lain, hubungi Kepala Bagian Administrasi Umum.',
+                ]);
+            }
+        }
+
         $bukti = [
             'lat'   => $data['lat'],
             'lng'   => $data['lng'],

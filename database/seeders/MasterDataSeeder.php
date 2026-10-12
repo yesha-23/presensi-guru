@@ -56,6 +56,7 @@ class MasterDataSeeder extends Seeder
             'hari_kerja'           => '1,2,3,4,5', // Senin–Jumat
             'sesi_manual_menit'    => '30',
             'sesi_otomatis_menit'  => '5',
+            'batas_presensi_datang' => '12:00', // lewat jam ini presensi datang ditolak (Alpa)
             'alamat_yayasan'       => 'Villa Seturan Indah, Gg. Apokat Jl. Seturan Raya No.10 Blk D, RT.12/RW.01, Kledokan, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281',
             'kota_surat'           => 'Sleman',
             'telepon_surat'        => 'Telp. (0274) 487069, WA Official: 0812 1204 0005',
