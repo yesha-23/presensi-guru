@@ -2,7 +2,10 @@
     $label = ['status_harian' => 'Status harian', 'jam_datang' => 'Jam datang', 'jam_pulang' => 'Jam pulang'];
 @endphp
 
-<div class="mt-5 grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
+@if ($menungguKoreksi->isEmpty())
+    @include('persetujuan._kosong', ['pesan' => 'Tidak ada koreksi presensi administrator yang menunggu persetujuan Anda.'])
+@else
+<div class="grid gap-5 lg:grid-cols-[20rem_minmax(0,1fr)] lg:items-start">
     {{-- ================= DAFTAR ================= --}}
     <div class="space-y-3">
         @forelse ($menungguKoreksi as $log)
@@ -16,9 +19,6 @@
                 <div class="text-sm text-gray-500">{{ $log->target->tanggal->translatedFormat('l, j F Y') }}</div>
             </a>
         @empty
-            <div class="rounded-2xl border border-dashed border-garis bg-white p-6 text-center text-sm text-gray-500">
-                Tidak ada koreksi presensi yang menunggu.
-            </div>
         @endforelse
     </div>
 
@@ -84,3 +84,4 @@
         </div>
     @endif
 </div>
+@endif

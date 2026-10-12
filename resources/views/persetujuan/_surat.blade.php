@@ -1,4 +1,4 @@
-<div class="mt-5 grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
+<div class="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
     {{-- ================= DAFTAR & TANDA TANGAN ================= --}}
     <div class="space-y-3">
         @forelse ($menungguSurat as $s)
@@ -11,9 +11,6 @@
                 <div class="text-sm text-gray-500">{{ $s->rentangTanggal() }} · {{ $s->pegawai->count() }} pegawai</div>
             </a>
         @empty
-            <div class="rounded-2xl border border-dashed border-garis bg-white p-6 text-center text-sm text-gray-500">
-                Tidak ada surat tugas yang menunggu tanda tangan Anda.
-            </div>
         @endforelse
 
         {{-- Tanda tangan saya --}}
@@ -43,6 +40,10 @@
     </div>
 
     {{-- ================= DETAIL ================= --}}
+    @if ($menungguSurat->isEmpty())
+        @include('persetujuan._kosong', ['pesan' => 'Tidak ada surat tugas yang menunggu tanda tangan Anda.'])
+    @endif
+
     @if ($suratDipilih)
         <div class="min-w-0 space-y-4">
             @include('surat-tugas._tahapan', ['surat' => $suratDipilih])

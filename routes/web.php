@@ -20,6 +20,8 @@ use App\Http\Controllers\TtdController;
 use App\Http\Controllers\NotifikasiController;
 use App\Http\Controllers\Admin\DataPresensiController;
 use App\Http\Controllers\RekapController;
+use App\Http\Controllers\Admin\PengaturanController;
+use App\Http\Controllers\DashboardController;
 
 // ================= PUBLIK =================
 Route::view('/', 'beranda-publik')->name('beranda');
@@ -106,9 +108,15 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     // ---------- Administrator ----------
     Route::middleware('peran:'.Role::ADMIN)->prefix('admin')->name('admin.')->group(function () {
-        Route::view('/dashboard', 'segera', ['judul' => 'Kehadiran hari ini'])->name('dashboard');
         Route::view('/pengajuan', 'segera', ['judul' => 'Izin, Sakit & Lembur'])->name('pengajuan');
-        Route::view('/pengaturan', 'segera', ['judul' => 'Pengaturan'])->name('pengaturan');
+        Route::get('/dashboard', [DashboardController::class, 'admin'])->name('dashboard');
+
+        // Pengaturan
+        Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan');
+        Route::put('/pengaturan/jam-kerja', [PengaturanController::class, 'jamKerja'])->name('pengaturan.jam-kerja');
+        Route::put('/pengaturan/lokasi', [PengaturanController::class, 'lokasi'])->name('pengaturan.lokasi');
+        Route::put('/pengaturan/presensi', [PengaturanController::class, 'presensi'])->name('pengaturan.presensi');
+        Route::put('/pengaturan/kop', [PengaturanController::class, 'kop'])->name('pengaturan.kop');
 
         // Data Presensi
         Route::get('/presensi', [DataPresensiController::class, 'index'])->name('presensi');
@@ -158,11 +166,11 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     // ---------- Kepala Sekolah ----------
     Route::middleware('peran:'.Role::KEPALA_SEKOLAH)->prefix('kepsek')->name('kepsek.')->group(function () {
-        Route::view('/pantau', 'segera', ['judul' => 'Pantau Kehadiran'])->name('pantau');
+        Route::get('/pantau', [DashboardController::class, 'pantau'])->name('pantau');
     });
 
     // ---------- Ketua Yayasan ----------
     Route::middleware('peran:'.Role::KETUA_YAYASAN)->prefix('yayasan')->name('yayasan.')->group(function () {
-        Route::view('/ringkasan', 'segera', ['judul' => 'Ringkasan Yayasan'])->name('ringkasan');
+        Route::get('/ringkasan', [DashboardController::class, 'yayasan'])->name('ringkasan');
     });
 });

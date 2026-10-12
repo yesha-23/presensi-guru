@@ -9,7 +9,11 @@
 <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
         <h1 class="text-2xl font-extrabold lg:text-3xl">Laporan Presensi untuk PKG</h1>
-        <p class="text-sm text-gray-500">Bahan pendukung penilaian kinerja guru, bukan nilai akhir PKG</p>
+        <p class="text-sm text-gray-500">
+            Bahan pendukung penilaian kinerja guru, bukan nilai akhir PKG
+            · data s.d. {{ $akhir->lt($mulai) ? '–' : $akhir->translatedFormat('j F Y') }}
+            · {{ $efektif !== null ? $efektif.' hari efektif' : 'hari efektif per unit' }}
+        </p>
     </div>
     <div class="flex gap-2">
         <a href="{{ route('pkg.excel', request()->query()) }}"
@@ -26,25 +30,30 @@
 @include('rekap._tab')
 @include('rekap._filter', ['modePkg' => true, 'kelompok' => 'Guru'])
 
-<p class="mt-3 text-right text-sm text-gray-500">
-    {{ $label }} · data s.d. {{ $akhir->lt($mulai) ? '–' : $akhir->translatedFormat('j F Y') }}
-    @if ($efektif !== null) · {{ $efektif }} hari efektif @endif
-</p>
-
-{{-- Perbandingan antarunit (UR-27) --}}
+{{-- Perbandingan antarunit (UR-27): satu baris di laptop --}}
 @if ($perUnit->isNotEmpty())
-    <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    <div class="mt-3 flex flex-col gap-3 md:flex-row">
         @foreach ($perUnit as $namaUnit => $u)
-            <div class="rounded-2xl border border-garis bg-white p-4">
+            @php $baik = $u['persen'] >= 95; @endphp
+            <div class="min-w-0 rounded-2xl border border-garis bg-white p-5 md:flex-1">
                 <div class="flex items-center justify-between">
-                    <span class="font-bold">{{ $namaUnit }}</span>
-                    <span class="text-xs text-gray-500">{{ $u['jumlah'] }} guru</span>
+                    <span class="text-lg font-bold">{{ $namaUnit }}</span>
+                    <span class="rounded-full bg-krem px-2.5 py-0.5 text-xs font-semibold text-gray-600">{{ $u['jumlah'] }} guru</span>
                 </div>
-                <div class="mt-2 text-2xl font-extrabold">{{ number_format($u['persen'], 1, ',', '.') }}%</div>
-                <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
-                    <div class="h-full rounded-full {{ $u['persen'] >= 95 ? 'bg-blue-700' : 'bg-orange-600' }}" style="width: {{ $u['persen'] }}%"></div>
+
+                <div class="mt-3 text-xs text-gray-500">Rata-rata kehadiran</div>
+                <div class="flex items-end justify-between gap-3">
+                    <span class="text-3xl font-extrabold {{ $baik ? 'text-blue-800' : 'text-orange-700' }}">
+                        {{ number_format($u['persen'], 1, ',', '.') }}%
+                    </span>
+                    <span class="pb-1 text-sm text-gray-500">
+                        alpa <b class="text-gray-800">{{ number_format($u['persen_alpa'], 1, ',', '.') }}%</b>
+                    </span>
                 </div>
-                <div class="mt-1 text-xs text-gray-500">rata-rata kehadiran · alpa {{ number_format($u['persen_alpa'], 1, ',', '.') }}%</div>
+
+                <div class="mt-2 h-2.5 overflow-hidden rounded-full bg-gray-100">
+                    <div class="h-full rounded-full {{ $baik ? 'bg-blue-700' : 'bg-orange-600' }}" style="width: {{ $u['persen'] }}%"></div>
+                </div>
             </div>
         @endforeach
     </div>
