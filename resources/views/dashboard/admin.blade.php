@@ -1,29 +1,37 @@
 @extends('layouts.app')
 
 @section('konten')
-<div class="flex flex-wrap items-start justify-between gap-4">
+{{-- ================= JUDUL ================= --}}
+<div class="flex items-start justify-between gap-4">
     <div>
         <h1 class="text-2xl font-extrabold lg:text-3xl">Kehadiran hari ini</h1>
         <p class="text-sm text-gray-500">{{ now()->translatedFormat('l, j F Y') }} · diperbarui {{ now()->format('H.i') }} WIB</p>
     </div>
-    <div class="flex items-center gap-2">
-        <form method="GET">
-            <label class="flex h-11 items-center gap-2 rounded-xl border border-garis bg-white px-3 text-sm">
-                <span class="font-semibold">Unit</span>
-                <select name="unit" onchange="this.form.submit()" class="h-full border-0 bg-transparent p-0 text-sm outline-none focus:ring-0">
-                    <option value="">Semua unit</option>
-                    @foreach ($units as $u)
-                        <option value="{{ $u->id }}" @selected($unit?->id === $u->id)>{{ $u->label() }}</option>
-                    @endforeach
-                </select>
-            </label>
-        </form>
-        <a href="{{ route('admin.dashboard') }}" class="inline-flex h-11 items-center gap-2 rounded-xl border border-garis bg-white px-4 text-sm font-semibold hover:bg-gray-50">
-            <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Reset
-        </a>
-        <div class="hidden lg:block">@include('partials.lonceng')</div>
-    </div>
+    <div class="hidden lg:block">@include('partials.lonceng')</div>
 </div>
+
+{{-- ================= FILTER UNIT: chip, muat 1 baris di HP & laptop (tanpa geser) ================= --}}
+@php
+    $kelasChip = 'truncate rounded-full border px-3 py-2 text-center text-sm font-semibold md:px-5';
+    $chipAktif = 'border-gray-900 bg-gray-900 text-white';
+    $chipBiasa = 'border-garis bg-white text-gray-700 hover:bg-gray-50';
+@endphp
+<nav aria-label="Filter unit" class="mt-5 flex items-center gap-2">
+    <span class="mr-1 hidden text-sm font-semibold text-gray-500 md:inline">Unit</span>
+
+    <a href="{{ route('admin.dashboard') }}"
+       class="{{ $kelasChip }} flex-1 md:flex-none {{ $unit ? $chipBiasa : $chipAktif }}"
+       @if (! $unit) aria-current="true" @endif>
+        Semua
+    </a>
+    @foreach ($units as $u)
+        <a href="{{ route('admin.dashboard', ['unit' => $u->id]) }}"
+           class="{{ $kelasChip }} flex-1 md:flex-none {{ $unit?->id === $u->id ? $chipAktif : $chipBiasa }}"
+           @if ($unit?->id === $u->id) aria-current="true" @endif>
+            {{ $u->label() }}
+        </a>
+    @endforeach
+</nav>
 
 @include('dashboard._kartu')
 
@@ -31,7 +39,12 @@
     {{-- Presensi pegawai --}}
     <div class="overflow-hidden rounded-2xl border border-garis bg-white">
         <div class="flex items-center justify-between px-4 py-3">
-            <h2 class="font-bold">Presensi pegawai</h2>
+            <h2 class="font-bold">
+                Presensi pegawai
+                @if ($unit)
+                    <span class="font-normal text-gray-500">· {{ $unit->label() }}</span>
+                @endif
+            </h2>
             <a href="{{ route('admin.presensi', ['unit' => $unit?->id]) }}" class="text-sm font-semibold text-merah underline">Lihat semua</a>
         </div>
         @include('dashboard._tabel')

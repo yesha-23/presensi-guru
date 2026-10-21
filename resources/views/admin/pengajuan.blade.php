@@ -26,30 +26,20 @@
     @endforeach
 </div>
 
-{{-- Filter: HP 2 baris, laptop 1 baris --}}
+{{-- Filter: Cari · Bulan · Unit · Status · Reset
+     Laptop: 1 baris. HP: baris 1 = Cari + Reset, baris 2 = Bulan, Unit, Status --}}
 <form method="GET" class="mt-4 grid grid-cols-6 gap-2 rounded-2xl border border-garis bg-white p-3 md:flex md:items-center">
     <input type="hidden" name="tab" value="{{ $tab }}">
-    <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
-        <i data-lucide="building-2" class="{{ $kelasIkon }}"></i>
-        <span class="sr-only">Unit</span>
-        <select name="unit" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
-            <option value="">Semua unit</option>
-            @foreach ($units as $u)
-                <option value="{{ $u->id }}" @selected(($filter['unit'] ?? '') == $u->id)>{{ $u->label() }}</option>
-            @endforeach
-        </select>
+
+    {{-- 1. Cari --}}
+    <label class="{{ $kelasKotak }} order-1 col-span-5 md:order-none md:flex-1">
+        <i data-lucide="search" class="h-4 w-4 shrink-0 text-gray-400"></i>
+        <span class="sr-only">Cari pegawai</span>
+        <input name="cari" value="{{ $filter['cari'] ?? '' }}" placeholder="Cari nama atau NIP, tekan Enter" class="{{ $kelasIsi }}">
     </label>
-    <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
-        <i data-lucide="list-filter" class="{{ $kelasIkon }}"></i>
-        <span class="sr-only">Status</span>
-        <select name="status" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
-            <option value="">Semua status</option>
-            @foreach (['Menunggu', 'Disetujui', 'Ditolak'] as $s)
-                <option @selected(($filter['status'] ?? '') === $s)>{{ $s }}</option>
-            @endforeach
-        </select>
-    </label>
-    <label class="{{ $kelasKotak }} col-span-2 md:flex-1">
+
+    {{-- 2. Bulan --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-44 md:shrink-0">
         <i data-lucide="calendar" class="{{ $kelasIkon }}"></i>
         <span class="sr-only">Bulan</span>
         <select name="bulan" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
@@ -59,13 +49,34 @@
             @endforeach
         </select>
     </label>
-    <label class="{{ $kelasKotak }} col-span-5 md:flex-[2]">
-        <i data-lucide="search" class="{{ $kelasIkon }}"></i>
-        <span class="sr-only">Cari pegawai</span>
-        <input name="cari" value="{{ $filter['cari'] ?? '' }}" placeholder="Cari nama atau NIP, tekan Enter" class="{{ $kelasIsi }}">
+
+    {{-- 3. Unit --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-40 md:shrink-0">
+        <i data-lucide="building-2" class="{{ $kelasIkon }}"></i>
+        <span class="sr-only">Unit</span>
+        <select name="unit" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+            <option value="">Semua unit</option>
+            @foreach ($units as $u)
+                <option value="{{ $u->id }}" @selected(($filter['unit'] ?? '') == $u->id)>{{ $u->label() }}</option>
+            @endforeach
+        </select>
     </label>
-    <a href="{{ route('admin.pengajuan', ['tab' => $tab]) }}" aria-label="Reset filter"
-       class="col-span-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-garis text-sm font-semibold hover:bg-gray-50 md:shrink-0 md:px-4">
+
+    {{-- 4. Status --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-44 md:shrink-0">
+        <i data-lucide="list-filter" class="{{ $kelasIkon }}"></i>
+        <span class="sr-only">Status</span>
+        <select name="status" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
+            <option value="">Semua status</option>
+            @foreach (['Menunggu', 'Disetujui', 'Ditolak'] as $s)
+                <option @selected(($filter['status'] ?? '') === $s)>{{ $s }}</option>
+            @endforeach
+        </select>
+    </label>
+
+    {{-- 5. Reset (HP: di samping Cari) --}}
+    <a href="{{ route('admin.pengajuan', ['tab' => $tab]) }}" aria-label="Reset filter" title="Reset filter"
+       class="order-2 col-span-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-garis text-sm font-semibold hover:bg-gray-50 md:order-none md:shrink-0 md:px-4">
         <i data-lucide="rotate-ccw" class="h-4 w-4"></i><span class="hidden md:inline">Reset</span>
     </a>
 </form>

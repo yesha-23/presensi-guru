@@ -23,7 +23,8 @@
     </a>
 </div>
 
-{{-- ================= FILTER: laptop 1 baris, HP 2 baris ================= --}}
+{{-- ================= FILTER: Cari · Tanggal · Unit · Status · Reset =================
+     Laptop: 1 baris. HP: baris 1 = Cari + Reset, baris 2 = Tanggal, Unit, Status --}}
 @php
     $kelasKotak = 'flex h-10 min-w-0 items-center gap-2 rounded-xl border border-garis bg-white px-2.5 text-sm focus-within:border-navy md:px-3';
     $kelasIsi = 'h-full w-full min-w-0 border-0 bg-transparent p-0 text-sm outline-none focus:ring-0';
@@ -32,14 +33,23 @@
 <form method="GET"
       class="mt-6 grid grid-cols-6 gap-2 rounded-2xl border border-garis bg-white p-3 md:flex md:items-center">
 
-    {{-- Baris 1 di HP: tanggal, unit, status (masing-masing 2 dari 6 kolom) --}}
-    <label class="{{ $kelasKotak }} col-span-2 md:w-44 md:shrink-0">
+    {{-- 1. Cari --}}
+    <label class="{{ $kelasKotak }} order-1 col-span-5 md:order-none md:flex-1">
+        <i data-lucide="search" class="h-4 w-4 shrink-0 text-gray-400"></i>
+        <span class="sr-only">Cari pegawai</span>
+        <input name="cari" value="{{ $filter['cari'] ?? '' }}" placeholder="Cari nama atau NIP, tekan Enter"
+               class="{{ $kelasIsi }}">
+    </label>
+
+    {{-- 2. Tanggal --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-44 md:shrink-0">
         <span class="sr-only">Tanggal</span>
         <input type="date" name="tanggal" value="{{ $tanggal->toDateString() }}" max="{{ today()->toDateString() }}"
                onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
     </label>
 
-    <label class="{{ $kelasKotak }} col-span-2 md:w-40 md:shrink-0">
+    {{-- 3. Unit --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-40 md:shrink-0">
         <i data-lucide="building-2" class="{{ $kelasIkon }}"></i>
         <span class="sr-only">Unit</span>
         <select name="unit" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
@@ -50,7 +60,8 @@
         </select>
     </label>
 
-    <label class="{{ $kelasKotak }} col-span-2 md:w-56 md:shrink-0">
+    {{-- 4. Status --}}
+    <label class="{{ $kelasKotak }} order-3 col-span-2 md:order-none md:w-52 md:shrink-0">
         <i data-lucide="list-filter" class="{{ $kelasIkon }}"></i>
         <span class="sr-only">Status</span>
         <select name="status" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
@@ -61,16 +72,9 @@
         </select>
     </label>
 
-    {{-- Baris 2 di HP: cari (5 dari 6 kolom) + reset (1 kolom) --}}
-    <label class="{{ $kelasKotak }} col-span-5 md:flex-1">
-        <i data-lucide="search" class="{{ $kelasIkon }}"></i>
-        <span class="sr-only">Cari pegawai</span>
-        <input name="cari" value="{{ $filter['cari'] ?? '' }}" placeholder="Cari nama atau NIP, tekan Enter"
-               class="{{ $kelasIsi }}">
-    </label>
-
+    {{-- 5. Reset (HP: di samping Cari) --}}
     <a href="{{ route('admin.presensi') }}" aria-label="Reset filter" title="Reset filter"
-       class="col-span-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-garis text-sm font-semibold hover:bg-gray-50 md:shrink-0 md:px-4">
+       class="order-2 col-span-1 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-garis text-sm font-semibold hover:bg-gray-50 md:order-none md:shrink-0 md:px-4">
         <i data-lucide="rotate-ccw" class="h-4 w-4"></i>
         <span class="hidden md:inline">Reset</span>
     </a>
