@@ -28,14 +28,24 @@
 
     {{-- Kamera --}}
     <div class="relative mt-4 aspect-[3/4] overflow-hidden rounded-3xl bg-gray-900 sm:aspect-[4/3]">
-        <video playsinline muted class="h-full w-full -scale-x-100 object-cover"></video>
+        <video playsinline muted autoplay class="h-full w-full -scale-x-100 object-cover"></video>
+
+        {{-- Langkah otomatis: tercentang satu per satu oleh presensi.js --}}
+        <div class="pointer-events-none absolute inset-x-3 top-3 flex flex-wrap justify-center gap-1.5">
+            @foreach (['kamera' => 'Kamera', 'lokasi' => 'Lokasi', 'wajah' => 'Wajah', 'kedip' => 'Kedip'] as $kunci => $teks)
+                <span data-langkah="{{ $kunci }}"
+                      class="flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-semibold text-gray-700 shadow-sm">
+                    <span data-ikon>•</span> {{ $teks }}
+                </span>
+            @endforeach
+        </div>
 
         <div id="oval"
              class="pointer-events-none absolute left-1/2 top-[45%] aspect-[3/4] h-[62%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-4 border-dashed border-kuning"></div>
 
         <div class="absolute inset-x-4 bottom-4 rounded-2xl bg-white px-4 py-3 text-center">
-            <div id="petunjuk" class="font-bold">Memuat…</div>
-            <div id="sub-petunjuk" class="text-sm text-gray-500"></div>
+            <div id="petunjuk" class="font-bold">Menyiapkan kamera…</div>
+            <div id="sub-petunjuk" class="text-sm text-gray-500">Izinkan akses kamera dan lokasi jika diminta</div>
         </div>
     </div>
 
@@ -56,9 +66,10 @@
         </div>
     </div>
 
+    {{-- Hanya muncul jika ada yang gagal (izin ditolak, model gagal, dibatalkan) --}}
     <button type="button" id="tombol-scan" disabled
-            class="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-merah py-4 text-lg font-bold text-white hover:bg-merah-tua disabled:opacity-50">
-        <i data-lucide="scan-face" class="h-6 w-6"></i> <span>Scan Wajah</span>
+            class="mt-4 hidden w-full items-center justify-center gap-2 rounded-2xl bg-merah py-4 text-lg font-bold text-white hover:bg-merah-tua disabled:opacity-50 [&:not(.hidden)]:flex">
+        <i data-lucide="rotate-ccw" class="h-6 w-6"></i> <span>Coba lagi</span>
     </button>
 
     <form id="form-masuk" method="POST" action="{{ route('presensi.masuk') }}" class="hidden">@csrf</form>

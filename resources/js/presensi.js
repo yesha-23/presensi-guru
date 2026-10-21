@@ -9,26 +9,40 @@ async function jalankan(akar) {
     const $ = (id) => document.getElementById(id);
     const video = akar.querySelector('video');
     const oval = $('oval');
-    const tombolScan = $('tombol-scan');
+    const tombolUlang = $('tombol-scan'); // berfungsi sebagai tombol "Coba lagi"
     const popup = $('popup');
     const isiPopup = $('isi-popup');
     const url = akar.dataset;
     const csrf = document.querySelector('meta[name="csrf-token"]').content;
     const lokasi = { lat: Number(url.lat), lng: Number(url.lng), radius: Number(url.radius) };
 
-    // 320: wajah lebih stabil terdeteksi di webcam laptop (224 terlalu kecil)
+    // 224: cepat, dipakai selama menunggu kedip (wajah biasanya dekat ke kamera HP)
+    const opsiKedip = new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.4 });
+    // 320: cadangan bila wajah tidak terdeteksi dengan 224 (mis. webcam laptop, wajah agak jauh)
     const opsiCepat = new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 });
-    const modeDebug = new URLSearchParams(location.search).has('debug');
+    // 416: lebih teliti, dipakai sekali untuk menghitung descriptor wajah
     const opsiAkurat = new faceapi.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.5 });
-    const opsiGps = { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 };
+    // maximumAge 10 detik: posisi yang baru saja didapat boleh dipakai ulang -> GPS jauh lebih cepat
+    const opsiGps = { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 };
+    const modeDebug = new URLSearchParams(location.search).has('debug');
 
     let posisi = null;
+    let galatGps = null;
     let idGps = null;
     let berjalan = false;
-    const MODE_DEBUG = new URLSearchParams(location.search).has('debug');
+    let modelSiap = false;
+    let janjiModel = null;
 
     const tidur = (ms) => new Promise((selesai) => setTimeout(selesai, ms));
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    // ================= Pencatat waktu (untuk tabel pengujian Bab IV) =================
+    let t0 = performance.now();
+    const catatanWaktu = {};
+    const catatWaktu = (tahap) => {
+        if (!(tahap in catatanWaktu)) catatanWaktu[tahap] = Math.round(performance.now() - t0);
+    };
+    const totalDetik = () => ((performance.now() - t0) / 1000).toFixed(1).replace('.', ',');
 
     // Popup tidak boleh ditutup dengan tombol Esc
     popup.addEventListener('cancel', (e) => e.preventDefault());
@@ -43,16 +57,29 @@ async function jalankan(akar) {
         oval.classList.toggle('border-emerald-400', terdeteksi);
     }
 
-    function siapUlang(judul, sub) {
-        petunjuk(judul, sub);
-        aturOval(false);
-        tombolScan.classList.remove('hidden');
-        tombolScan.disabled = false;
+    // Label langkah di atas kamera: 'tunggu' | 'ok' | 'gagal'
+    function tandai(nama, keadaan) {
+        const el = akar.querySelector(`[data-langkah="${nama}"]`);
+        if (!el || el.dataset.keadaan === keadaan) return;
+        el.dataset.keadaan = keadaan;
+        el.classList.toggle('bg-white/90', keadaan === 'tunggu');
+        el.classList.toggle('text-gray-700', keadaan === 'tunggu');
+        el.classList.toggle('bg-emerald-500', keadaan === 'ok');
+        el.classList.toggle('bg-red-600', keadaan === 'gagal');
+        el.classList.toggle('text-white', keadaan !== 'tunggu');
+        el.querySelector('[data-ikon]').textContent = keadaan === 'ok' ? '✓' : keadaan === 'gagal' ? '!' : '•';
     }
 
-    // ================= 1. Muat model =================
-    petunjuk('Memuat model pengenalan wajah…', 'Hanya lama pada pemakaian pertama');
-    try {
+    function siapUlang(judul, sub) {
+        berjalan = false;
+        petunjuk(judul, sub);
+        aturOval(false);
+        tombolUlang.classList.remove('hidden');
+        tombolUlang.disabled = false;
+    }
+
+    // ================= 1. Model (dimuat paralel dengan kamera & GPS) =================
+    async function muatModel() {
         try {
             await faceapi.tf.setBackend('webgl');
         } catch {
@@ -64,14 +91,24 @@ async function jalankan(akar) {
             faceapi.nets.faceLandmark68Net.loadFromUri(url.urlModel),
             faceapi.nets.faceRecognitionNet.loadFromUri(url.urlModel),
         ]);
-    } catch (e) {
-        console.error(e);
-        petunjuk('Model gagal dimuat', 'Muat ulang halaman ini');
-        return;
-    }
-    siapUlang('Siap presensi', 'Tekan Scan Wajah untuk memulai');
+        catatWaktu('model dimuat');
 
-    // ================= GPS =================
+        // Pemanasan: inferensi pertama di WebGL lambat karena menyiapkan shader.
+        // Dilakukan sekarang (saat kamera masih menyala) supaya deteksi wajah pertama langsung cepat.
+        try {
+            const kosong = document.createElement('canvas');
+            kosong.width = kosong.height = 160;
+            await faceapi.detectSingleFace(kosong, opsiKedip);
+            await faceapi.detectFaceLandmarks(kosong);
+            await faceapi.computeFaceDescriptor(kosong);
+        } catch {
+            // pemanasan boleh gagal, tidak memengaruhi presensi
+        }
+        modelSiap = true;
+        catatWaktu('model siap (setelah pemanasan)');
+    }
+
+    // ================= 2. GPS (berjalan di belakang, tidak menghalangi kamera) =================
     function jarakMeter(lat, lng) {
         const rad = (d) => (d * Math.PI) / 180;
         const dLat = rad(lat - lokasi.lat);
@@ -92,20 +129,46 @@ async function jalankan(akar) {
         bar.classList.toggle('bg-blue-700', jarak <= lokasi.radius);
     }
 
-    const posisiPertama = () =>
-        new Promise((selesai, gagal) =>
-            navigator.geolocation.getCurrentPosition((p) => {
-                posisi = p.coords;
-                perbaruiJarak();
-                selesai();
-            }, gagal, opsiGps)
-        );
+    function mulaiGps() {
+        if (idGps !== null) return;
+        galatGps = null;
+        tandai('lokasi', posisi ? 'ok' : 'tunggu');
 
-    function pantauGps() {
-        idGps = navigator.geolocation.watchPosition((p) => {
-            posisi = p.coords;
-            perbaruiJarak();
-        }, () => { }, opsiGps);
+        idGps = navigator.geolocation.watchPosition(
+            (p) => {
+                posisi = p.coords;
+                galatGps = null;
+                perbaruiJarak();
+                tandai('lokasi', 'ok');
+                catatWaktu('lokasi didapat');
+            },
+            (e) => {
+                galatGps = e;
+                if (!posisi) tandai('lokasi', 'gagal');
+            },
+            opsiGps
+        );
+    }
+
+    // ================= 3. Kamera =================
+    async function nyalakanKamera() {
+        if (video.srcObject) return true;
+        tandai('kamera', 'tunggu');
+
+        try {
+            video.srcObject = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                audio: false,
+            });
+            await video.play();
+            tandai('kamera', 'ok');
+            catatWaktu('kamera menyala');
+            return true;
+        } catch (e) {
+            console.error(e);
+            tandai('kamera', 'gagal');
+            return e;
+        }
     }
 
     function hentikan() {
@@ -116,48 +179,69 @@ async function jalankan(akar) {
         idGps = null;
     }
 
-    // ================= 2. Minta izin kamera & lokasi =================
+    // ================= Alur utama: semuanya otomatis sejak halaman dibuka =================
     async function mulai() {
         tutupPopup();
-        tombolScan.disabled = true;
-        petunjuk('Meminta izin kamera dan lokasi…');
+        tombolUlang.classList.add('hidden');
+        tombolUlang.disabled = true;
+        aturOval(false);
+        tandai('wajah', 'tunggu');
+        tandai('kedip', 'tunggu');
+
+        t0 = performance.now();
+        Object.keys(catatanWaktu).forEach((k) => delete catatanWaktu[k]);
 
         if (!navigator.mediaDevices?.getUserMedia || !navigator.geolocation) {
             siapUlang('Browser tidak mendukung', 'Buka lewat https:// di Google Chrome');
             return;
         }
 
-        try {
-            video.srcObject = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
-                audio: false,
-            });
-            await video.play();
-            await posisiPertama();
-        } catch (e) {
-            console.error(e);
+        petunjuk(
+            modelSiap ? 'Menyalakan kamera…' : 'Menyiapkan kamera dan pengenalan wajah…',
+            'Izinkan akses kamera dan lokasi jika diminta'
+        );
+
+        // Ketiganya dijalankan BERSAMAAN, tidak saling menunggu
+        mulaiGps();
+        janjiModel ??= muatModel();
+        const kamera = await nyalakanKamera();
+
+        if (kamera !== true) {
             hentikan();
-            const ditolak = e?.name === 'NotAllowedError' || e?.code === 1;
+            const ditolak = kamera?.name === 'NotAllowedError';
             siapUlang(
-                'Izinkan akses kamera dan lokasi',
-                ditolak ? 'Ketuk ikon di samping alamat situs, izinkan Kamera & Lokasi, lalu coba lagi.' : 'Lokasi belum ditemukan. Aktifkan GPS lalu coba lagi.'
+                'Kamera tidak dapat dibuka',
+                ditolak
+                    ? 'Ketuk ikon di samping alamat situs, izinkan Kamera dan Lokasi, lalu tekan Coba lagi.'
+                    : 'Tutup aplikasi lain yang memakai kamera, lalu tekan Coba lagi.'
             );
             return;
         }
 
-        pantauGps();
-        tombolScan.classList.add('hidden');
+        if (!modelSiap) petunjuk('Menyiapkan pengenalan wajah…', 'Hanya lama pada pemakaian pertama');
+
+        try {
+            await janjiModel;
+        } catch (e) {
+            console.error(e);
+            janjiModel = null; // supaya "Coba lagi" memuat ulang model
+            hentikan();
+            siapUlang('Model pengenalan wajah gagal dimuat', 'Periksa koneksi internet, lalu tekan Coba lagi');
+            return;
+        }
+
         await deteksiKedip();
     }
 
-    tombolScan.addEventListener('click', mulai);
+    tombolUlang.addEventListener('click', mulai);
+    window.addEventListener('pagehide', hentikan);
     window.addEventListener('beforeunload', hentikan);
 
-    // ================= 3. Cek keaktifan: kedip mata (EAR) =================
+    // ================= 4. Cek keaktifan: kedip mata (EAR) =================
     const BATAS_PEJAM = 0.92;      // EAR < 92% EAR normal  -> mata dianggap terpejam
     const BATAS_BUKA = 0.97;       // EAR > 97% EAR normal  -> mata dianggap terbuka lagi
-    const BATAS_GERAK = 0.06;      // gerak hidung per bingkai (relatif jarak antar-mata) -> kepala dianggap bergerak
-    const BINGKAI_KALIBRASI = 8;   // jumlah bingkai mata terbuka untuk menentukan EAR normal
+    const BATAS_GERAK = 0.10;      // gerak hidung per bingkai; dilonggarkan agar goyangan tangan tidak membatalkan kedip
+    const BINGKAI_KALIBRASI = 5;   // cukup 5 bingkai mata terbuka untuk menentukan EAR normal
     const MAKS_TERPEJAM_MS = 3000; // terpejam lebih lama dari ini dianggap bukan kedip
 
     // Jarak antara dua titik
@@ -178,6 +262,25 @@ async function jalankan(akar) {
         return urut[Math.floor(urut.length / 2)];
     };
 
+    // Bekukan satu bingkai video ke kanvas lebar 480 px
+    function ambilBingkai() {
+        const kanvas = document.createElement('canvas');
+        kanvas.width = 480;
+        kanvas.height = Math.round((video.videoHeight * 480) / video.videoWidth);
+        kanvas.getContext('2d').drawImage(video, 0, 0, kanvas.width, kanvas.height);
+        return kanvas;
+    }
+
+    // Descriptor + foto wajah yang disiapkan SEBELUM kedip,
+    // sehingga setelah kedip terdeteksi data bisa langsung dikirim
+    async function siapkanBekal() {
+        const kanvas = ambilBingkai();
+        const d = await faceapi.detectSingleFace(kanvas, opsiAkurat).withFaceLandmarks().withFaceDescriptor();
+        if (!d) return null;
+        catatWaktu('descriptor disiapkan');
+        return { descriptor: Array.from(d.descriptor), foto: kanvas.toDataURL('image/jpeg', 0.8) };
+    }
+
     async function deteksiKedip() {
         berjalan = true;
 
@@ -187,37 +290,51 @@ async function jalankan(akar) {
         let hilang = 0;          // jumlah bingkai berturut-turut tanpa wajah
         let hidungSebelum = null;
         let berkedip = false;
+        let bekal = null;        // descriptor + foto yang sudah disiapkan
+        let opsiLoop = opsiKedip;
         const mulaiPada = Date.now();
 
-        petunjuk('Lihat ke kamera', 'Tahan kepala tetap diam');
+        petunjuk('Lihat ke kamera', 'Tahan sebentar');
 
         while (berjalan) {
+            if (video.readyState < 2) {
+                await tidur(30);
+                continue;
+            }
+
             const awal = performance.now();
-            const d = await faceapi.detectSingleFace(video, opsiCepat).withFaceLandmarks();
+            const d = await faceapi.detectSingleFace(video, opsiLoop).withFaceLandmarks();
             const ms = Math.round(performance.now() - awal);
 
             if (!berjalan) return; // kamera dihentikan dari luar
 
             // ---------- Wajah tidak terdeteksi ----------
-            // Baru dianggap hilang setelah ±6 bingkai berturut-turut (±1 detik),
-            // supaya wajah yang hilang sesaat saat mata terpejam tidak mereset kedip
             if (!d) {
                 hilang += 1;
 
+                // Detektor 224 tidak menemukan wajah -> pakai 320 (wajah kecil / jauh)
+                if (hilang >= 3) opsiLoop = opsiCepat;
+
+                // Baru dianggap hilang setelah ±6 bingkai berturut-turut,
+                // supaya wajah yang hilang sesaat saat mata terpejam tidak mereset kedip
                 if (hilang >= 6) {
                     aturOval(false);
+                    tandai('wajah', 'tunggu');
                     petunjuk('Arahkan wajah ke dalam bingkai', 'Pastikan wajah terlihat jelas dan cahaya cukup');
                     riwayat.length = 0;
                     terpejam = false;
                     hidungSebelum = null;
+                    bekal = null; // keamanan: wajah hilang -> descriptor lama dibuang
                 }
 
-                await tidur(60);
+                await tidur(30);
                 continue;
             }
 
             hilang = 0;
             aturOval(true);
+            tandai('wajah', 'ok');
+            catatWaktu('wajah terdeteksi');
 
             // ---------- Hitung EAR ----------
             const lm = d.landmarks;
@@ -237,12 +354,19 @@ async function jalankan(akar) {
             const rasio = ear / dasar;
             const sudahKalibrasi = riwayat.length >= BINGKAI_KALIBRASI;
 
+            // ---------- Siapkan descriptor saat kalibrasi (mata terbuka, kepala diam) ----------
+            // Dilakukan sekali, sebelum pegawai diminta berkedip, jadi tidak mengganggu deteksi kedip
+            if (!bekal && !terpejam && gerak <= BATAS_GERAK && riwayat.length >= 2) {
+                bekal = await siapkanBekal();
+                hidungSebelum = null; // ada jeda karena proses di atas -> gerak bingkai berikut tidak dihitung
+                continue;
+            }
+
             // ---------- Logika kedip ----------
             if (gerak > BATAS_GERAK) {
-                // Kepala bergerak: abaikan bingkai ini agar gerakan tidak terbaca sebagai kedip
-                terpejam = false;
+                // Bingkai goyang dilewati saja; kedipan yang sedang berlangsung TIDAK dibatalkan
             } else if (!terpejam) {
-                if (sudahKalibrasi && rasio < BATAS_PEJAM) {
+                if (sudahKalibrasi && bekal && rasio < BATAS_PEJAM) {
                     // EAR turun cukup jauh -> mata terpejam
                     terpejam = true;
                     terpejamSejak = Date.now();
@@ -250,6 +374,7 @@ async function jalankan(akar) {
                     // Hanya bingkai mata terbuka yang menjadi patokan "normal"
                     riwayat.push(ear);
                     if (riwayat.length > 20) riwayat.shift();
+                    if (riwayat.length === BINGKAI_KALIBRASI) catatWaktu('kalibrasi selesai');
                 }
             } else if (rasio > BATAS_BUKA) {
                 // Terpejam lalu terbuka lagi = satu kedipan
@@ -263,70 +388,77 @@ async function jalankan(akar) {
             // ---------- Petunjuk di layar ----------
             if (modeDebug) {
                 petunjuk(
-                    terpejam ? 'Mata terpejam…' : sudahKalibrasi ? 'Kedipkan mata' : 'Kalibrasi…',
-                    `EAR ${ear.toFixed(3)} · normal ${dasar.toFixed(3)} · rasio ${rasio.toFixed(2)} · gerak ${gerak.toFixed(3)} · ${ms} ms`
+                    terpejam ? 'Mata terpejam…' : sudahKalibrasi && bekal ? 'Kedipkan mata' : 'Kalibrasi…',
+                    `EAR ${ear.toFixed(3)} · rasio ${rasio.toFixed(2)} · gerak ${gerak.toFixed(3)} · ${ms} ms · ${opsiLoop === opsiKedip ? '224' : '320'}`
                 );
-            } else if (gerak > BATAS_GERAK) {
-                petunjuk('Tahan kepala tetap diam', 'lalu kedipkan mata perlahan');
-            } else if (!sudahKalibrasi) {
-                petunjuk('Lihat ke kamera', 'Tahan kepala tetap diam');
+            } else if (!sudahKalibrasi || !bekal) {
+                petunjuk('Lihat ke kamera', 'Tahan sebentar');
             } else {
                 petunjuk(
-                    'Kedipkan mata perlahan',
-                    Date.now() - mulaiPada > 10000 ? 'Pejamkan mata ±½ detik, lalu buka kembali' : 'untuk verifikasi wajah'
+                    'Kedipkan mata',
+                    Date.now() - mulaiPada > 8000 ? 'Pejamkan mata sebentar, lalu buka kembali' : 'untuk verifikasi wajah'
                 );
             }
-
-            await tidur(10);
         }
 
         if (berkedip) {
             berjalan = false;
-            await kirim();
+            tandai('kedip', 'ok');
+            catatWaktu('kedip terdeteksi');
+            await kirim(bekal);
         }
     }
 
-    // ================= 4. Ekstrak descriptor, kirim ke server + GPS =================
-    async function kirim(percobaan = 1) {
+    // ================= 5. Kirim ke server + GPS =================
+    async function kirim(bekal = null, percobaan = 1) {
         try {
             petunjuk('Mencocokkan wajah…', 'Mohon tunggu sebentar');
 
+            // Biasanya lokasi sudah ada karena GPS berjalan sejak awal
             const batasTunggu = Date.now() + 10000;
-            while (!posisi && Date.now() < batasTunggu) await tidur(300);
+            while (!posisi && galatGps?.code !== 1 && Date.now() < batasTunggu) await tidur(200);
 
             if (!posisi) {
                 hentikan();
-                popupGagal({ alasan: 'Lokasi belum ditemukan', wajah: '-', waktu: '-', keterangan: 'Aktifkan GPS' });
+                popupGagal({
+                    alasan: galatGps?.code === 1 ? 'Izin lokasi ditolak' : 'Lokasi belum ditemukan',
+                    wajah: '-',
+                    waktu: '-',
+                    keterangan: galatGps?.code === 1 ? 'Izinkan Lokasi di pengaturan situs' : 'Aktifkan GPS',
+                });
                 return;
             }
 
-            const kanvas = document.createElement('canvas');
-            kanvas.width = 480;
-            kanvas.height = Math.round((video.videoHeight * 480) / video.videoWidth);
-            kanvas.getContext('2d').drawImage(video, 0, 0, kanvas.width, kanvas.height);
-
-            const d = await faceapi.detectSingleFace(kanvas, opsiAkurat).withFaceLandmarks().withFaceDescriptor();
-
-            if (!d) {
-                if (percobaan < 3) {
-                    await tidur(300);
-                    return kirim(percobaan + 1);
+            // Cadangan: bila descriptor belum sempat disiapkan, ambil sekarang
+            if (!bekal) {
+                bekal = await siapkanBekal();
+                if (!bekal) {
+                    if (percobaan < 3) {
+                        await tidur(200);
+                        return kirim(null, percobaan + 1);
+                    }
+                    hentikan();
+                    popupGagal({ alasan: 'Wajah tidak terdeteksi saat foto diambil', wajah: '-', waktu: '-', keterangan: 'Hadapkan wajah ke kamera' });
+                    return;
                 }
-                hentikan();
-                popupGagal({ alasan: 'Wajah tidak terdeteksi saat foto diambil', wajah: '-', waktu: '-', keterangan: 'Hadapkan wajah ke kamera' });
-                return;
             }
 
             const posisiKirim = posisi;
             hentikan();
 
-            tampilkan(await kirimJson(url.urlScan, {
-                descriptor: Array.from(d.descriptor),
+            const hasil = await kirimJson(url.urlScan, {
+                descriptor: bekal.descriptor,
                 lat: posisiKirim.latitude,
                 lng: posisiKirim.longitude,
                 akurasi: posisiKirim.accuracy,
-                foto: kanvas.toDataURL('image/jpeg', 0.8),
-            }));
+                foto: bekal.foto,
+            });
+            catatWaktu('jawaban server');
+
+            console.log(`Waktu presensi: ${totalDetik()} detik`);
+            console.table(catatanWaktu);
+
+            tampilkan(hasil);
         } catch (e) {
             console.error(e);
             hentikan();
@@ -362,7 +494,7 @@ async function jalankan(akar) {
         }
     }
 
-    // ================= 5. Popup =================
+    // ================= 6. Popup =================
     const IKON = {
         centang: '<path d="M20 6 9 17l-5-5"/>',
         jam: '<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
@@ -427,7 +559,8 @@ async function jalankan(akar) {
                 baris('Waktu', esc(d.waktu)) +
                 baris('Status', lencana(d.status, warna)) +
                 baris('Keterangan', esc(d.keterangan)) +
-                baris('Jarak', esc(teksJarak(d)))
+                baris('Jarak', esc(teksJarak(d))) +
+                (modeDebug ? baris('Waktu proses', `${esc(totalDetik())} detik`) : '')
             ) + `
             <div class="mt-5 flex justify-between text-sm">
                 <span class="text-gray-600">Masuk dashboard otomatis</span>
@@ -467,8 +600,7 @@ async function jalankan(akar) {
                 siapUlang(r.alasan, r.keterangan);
                 return;
             }
-            petunjuk('Presensi dibatalkan', 'Silakan scan ulang');
-            mulai();
+            mulai(); // langsung scan ulang otomatis
         };
     }
 
@@ -491,7 +623,7 @@ async function jalankan(akar) {
             popup.querySelectorAll('button').forEach((b) => (b.disabled = true));
             await kirimJson(url.urlBatalPulang);
             tutupPopup();
-            siapUlang('Presensi pulang dibatalkan', 'Tekan Scan Wajah jika ingin presensi lagi');
+            siapUlang('Presensi pulang dibatalkan', 'Tekan Coba lagi jika ingin presensi lagi');
         };
 
         $('tombol-ya-pulang').onclick = async () => {
@@ -529,4 +661,7 @@ async function jalankan(akar) {
             </div>`
         );
     }
+
+    // ================= Mulai langsung saat halaman dibuka =================
+    mulai();
 }

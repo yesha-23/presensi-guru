@@ -34,7 +34,8 @@
 <div class="relative -mt-16 grid gap-4 lg:mt-6 lg:grid-cols-3 lg:items-start lg:gap-6">
 
     {{-- Presensi hari ini (kiri atas di laptop) --}}
-    <div class="rounded-3xl border border-garis bg-white p-5 shadow-sm lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:p-6">
+    {{-- lg:self-stretch + flex-col: kartu memanjang setinggi kolom kanan, tidak ada ruang kosong di bawahnya --}}
+    <div class="flex flex-col rounded-3xl border border-garis bg-white p-5 shadow-sm lg:col-span-2 lg:col-start-1 lg:row-start-1 lg:self-stretch lg:p-6">
         <div class="flex flex-wrap items-center justify-between gap-2">
             <h2 class="font-bold lg:text-lg">Presensi hari ini</h2>
             <div class="flex gap-1.5">
@@ -55,30 +56,31 @@
             </div>
         @endif
 
-        <div class="mt-4 grid grid-cols-2 gap-3">
-            <div class="rounded-2xl bg-krem p-4">
+        {{-- flex-1: kotak Datang & Pulang mengisi sisa tinggi kartu di laptop --}}
+        <div class="mt-4 grid flex-1 grid-cols-2 gap-3">
+            <div class="flex flex-col justify-center rounded-2xl bg-krem p-4 lg:p-5">
                 <div class="text-sm text-gray-500">Datang</div>
-                <div class="text-2xl font-extrabold tabular-nums lg:text-3xl {{ $hariIni?->jam_datang ? '' : 'text-gray-400' }}">
+                <div class="text-2xl font-extrabold tabular-nums lg:text-4xl {{ $hariIni?->jam_datang ? '' : 'text-gray-400' }}">
                     {{ $hariIni?->jam_datang ?? '--:--:--' }}
                 </div>
                 @if ($hariIni?->status_datang === 'Terlambat')
-                    <div class="mt-1 text-xs text-orange-800">Terlambat {{ \App\Models\Presensi::formatDetik($hariIni->detik_terlambat) }}</div>
+                    <div class="mt-1 text-xs text-orange-800 lg:text-sm">Terlambat {{ \App\Models\Presensi::formatDetik($hariIni->detik_terlambat) }}</div>
                 @elseif ($jadwalHariIni)
-                    <div class="mt-1 text-xs text-gray-500">
+                    <div class="mt-1 text-xs text-gray-500 lg:text-sm">
                         Jadwal {{ $jadwalHariIni['masuk']->format('H.i') }} · batas {{ $batasDatang->format('H.i') }}
                     </div>
                 @endif
             </div>
 
-            <div class="rounded-2xl bg-krem p-4">
+            <div class="flex flex-col justify-center rounded-2xl bg-krem p-4 lg:p-5">
                 <div class="text-sm text-gray-500">Pulang</div>
-                <div class="text-2xl font-extrabold tabular-nums lg:text-3xl {{ $hariIni?->jam_pulang ? '' : 'text-gray-400' }}">
+                <div class="text-2xl font-extrabold tabular-nums lg:text-4xl {{ $hariIni?->jam_pulang ? '' : 'text-gray-400' }}">
                     {{ $hariIni?->jam_pulang ?? '--:--:--' }}
                 </div>
                 @if ($hariIni?->pulang_cepat)
-                    <div class="mt-1 text-xs text-orange-800">Lebih awal {{ \App\Models\Presensi::formatDetik($hariIni->detik_pulang_cepat) }}</div>
+                    <div class="mt-1 text-xs text-orange-800 lg:text-sm">Lebih awal {{ \App\Models\Presensi::formatDetik($hariIni->detik_pulang_cepat) }}</div>
                 @elseif ($jadwalHariIni)
-                    <div class="mt-1 text-xs text-gray-500">Jadwal {{ $jadwalHariIni['pulang']->format('H.i') }}</div>
+                    <div class="mt-1 text-xs text-gray-500 lg:text-sm">Jadwal {{ $jadwalHariIni['pulang']->format('H.i') }}</div>
                 @endif
             </div>
         </div>
@@ -167,4 +169,12 @@
         @endif
     </div>
 </div>
+{{-- Unduh model wajah lebih awal agar halaman presensi langsung siap --}}
+@if (! $kondisi && ! $lengkap)
+    @foreach (glob(public_path('models/*')) as $berkasModel)
+        @if (\Illuminate\Support\Str::contains(basename($berkasModel), ['tiny_face_detector', 'face_landmark_68', 'face_recognition']))
+            <link rel="prefetch" href="{{ asset('models/'.basename($berkasModel)) }}">
+        @endif
+    @endforeach
+@endif
 @endsection
