@@ -6,30 +6,42 @@
     $rentang = fn ($p) => $p->tanggal_mulai->equalTo($p->tanggal_selesai)
         ? $p->tanggal_mulai->translatedFormat('j F Y')
         : $p->tanggal_mulai->translatedFormat('j M').' – '.$p->tanggal_selesai->translatedFormat('j M Y');
+    $edit = $edit ?? null;
+    $keRiwayat = route('pegawai.pengajuan');
 @endphp
 
 <div class="flex items-center gap-3">
-    <a href="{{ route('pegawai.beranda') }}" class="rounded-xl border border-garis bg-white p-2.5" aria-label="Kembali">
+    <a href="{{ $keRiwayat }}" class="rounded-xl border border-garis bg-white p-2.5" aria-label="Kembali">
         <i data-lucide="chevron-left" class="h-5 w-5"></i>
     </a>
-    <h1 class="text-2xl font-extrabold">Ajukan izin / sakit</h1>
+    <h1 class="text-2xl font-extrabold">{{ $edit ? 'Edit pengajuan izin / sakit' : 'Ajukan izin / sakit' }}</h1>
 </div>
 
 <div class="mt-6 grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
-    {{-- ================= FORM ================= --}}
-    <form method="POST" action="{{ route('pegawai.izin.store') }}" enctype="multipart/form-data" id="form-izin"
+    {{-- ================= FORM (tambah & edit) ================= --}}
+    <form method="POST" action="{{ $edit ? route('pegawai.izin.update', $edit) : route('pegawai.izin.store') }}"
+          enctype="multipart/form-data" id="form-izin"
           data-besok="{{ today()->addDay()->toDateString() }}"
           data-hari-ini="{{ today()->toDateString() }}"
           data-kemarin="{{ today()->subDay()->toDateString() }}"
-          class="space-y-5 rounded-3xl border border-garis bg-white p-5 lg:p-6">
+          class="space-y-5 rounded-3xl border bg-white p-5 lg:p-6 {{ $edit ? 'border-navy' : 'border-garis' }}">
         @csrf
+        @if ($edit) @method('PUT') @endif
+
+        @if ($edit)
+            <div class="flex items-start gap-2 rounded-2xl bg-blue-50 p-3 text-sm text-blue-900">
+                <i data-lucide="pencil" class="mt-0.5 h-4 w-4 shrink-0"></i>
+                <span>Anda sedang mengubah pengajuan <b>{{ $edit->jenis }} · {{ $rentang($edit) }}</b>. Perubahan hanya bisa dilakukan selama status masih Menunggu.</span>
+            </div>
+        @endif
 
         <div>
             <span class="block text-sm font-semibold">Jenis pengajuan</span>
             <div class="mt-2 grid grid-cols-2 rounded-2xl bg-krem p-1">
                 @foreach (['Izin', 'Sakit'] as $jenis)
                     <label class="cursor-pointer">
-                        <input type="radio" name="jenis" value="{{ $jenis }}" class="peer sr-only" @checked(old('jenis', 'Izin') === $jenis)>
+                        <input type="radio" name="jenis" value="{{ $jenis }}" class="peer sr-only"
+                               @checked(old('jenis', $edit?->jenis ?? 'Izin') === $jenis)>
                         <span class="block rounded-xl py-2.5 text-center font-semibold text-gray-500 peer-checked:bg-white peer-checked:text-merah peer-checked:shadow-sm">
                             {{ $jenis }}
                         </span>
@@ -41,10 +53,10 @@
 
         <div class="grid grid-cols-2 gap-3">
             <label class="block text-sm font-semibold">Tanggal mulai
-                <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai') }}" class="{{ $kelasInput }}">
+                <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai', $edit?->tanggal_mulai?->toDateString()) }}" class="{{ $kelasInput }}">
             </label>
             <label class="block text-sm font-semibold">Tanggal selesai
-                <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" class="{{ $kelasInput }}">
+                <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai', $edit?->tanggal_selesai?->toDateString()) }}" class="{{ $kelasInput }}">
             </label>
             @error('tanggal_mulai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
             @error('tanggal_selesai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
@@ -52,15 +64,23 @@
 
         <label class="block text-sm font-semibold">Alasan
             <textarea name="alasan" rows="4" maxlength="1000" class="{{ $kelasInput }}"
-                      placeholder="Tuliskan alasan secara singkat">{{ old('alasan') }}</textarea>
+                      placeholder="Tuliskan alasan secara singkat">{{ old('alasan', $edit?->alasan) }}</textarea>
             @error('alasan') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
 
         <div>
-            <span class="block text-sm font-semibold">Bukti pendukung</span>
+            <span class="block text-sm font-semibold">
+                Bukti pendukung
+                @if ($edit) <span class="font-normal text-gray-500">(opsional, kosongkan jika tidak diganti)</span> @endif
+            </span>
+            @if ($edit?->bukti_path)
+                <p class="mt-1 text-xs text-gray-600">
+                    Bukti saat ini: <a href="{{ route('pengajuan.bukti', $edit) }}" target="_blank" class="font-semibold text-navy underline">lihat bukti</a>
+                </p>
+            @endif
             <label class="mt-1 flex cursor-pointer flex-col items-center gap-1 rounded-2xl border-2 border-dashed border-garis bg-krem/60 px-4 py-6 text-center hover:bg-krem">
                 <i data-lucide="upload" class="h-6 w-6 text-merah"></i>
-                <span class="font-semibold">Unggah foto atau PDF</span>
+                <span class="font-semibold">{{ $edit ? 'Ganti dengan foto atau PDF baru' : 'Unggah foto atau PDF' }}</span>
                 <span id="info-bukti" class="text-xs text-gray-500">Maksimal 2 MB</span>
                 <input type="file" name="bukti" id="input-bukti" accept="image/jpeg,image/png,application/pdf" class="sr-only">
             </label>
@@ -71,47 +91,43 @@
             Izin paling lambat H-1. Sakit di hari yang sama atau susulan paling lambat H+1.
         </div>
 
-        <button type="submit" class="w-full rounded-2xl bg-merah py-4 font-bold text-white hover:bg-merah-tua">
-            Kirim ke {{ $tujuan }}
-        </button>
+        @if ($edit)
+            <div class="grid grid-cols-2 gap-3">
+                <a href="{{ $keRiwayat }}" class="rounded-2xl border border-garis bg-white py-4 text-center font-bold hover:bg-gray-50">Batal edit</a>
+                <button type="submit" class="rounded-2xl bg-merah py-4 font-bold text-white hover:bg-merah-tua">Simpan perubahan</button>
+            </div>
+        @else
+            <button type="submit" class="w-full rounded-2xl bg-merah py-4 font-bold text-white hover:bg-merah-tua">
+                Kirim ke {{ $tujuan }}
+            </button>
+        @endif
     </form>
 
-    {{-- ================= PENGAJUAN SAYA ================= --}}
+    {{-- ================= PENGAJUAN TERAKHIR (ringkas, tanpa aksi) ================= --}}
     <div class="rounded-3xl border border-garis bg-white p-5">
-        <h2 class="font-bold">Pengajuan saya</h2>
+        <div class="flex items-center justify-between gap-3">
+            <h2 class="font-bold">Pengajuan terakhir</h2>
+            <a href="{{ $keRiwayat }}" class="text-xs font-semibold text-navy underline">Lihat semua</a>
+        </div>
 
         <div class="mt-3 divide-y divide-garis">
             @forelse ($riwayat as $p)
-                <div class="py-3">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="leading-tight">
-                            <div class="font-semibold">{{ $p->jenis }} · {{ $rentang($p) }}</div>
-                            <div class="text-xs text-gray-500">Diajukan {{ $p->created_at->translatedFormat('j M Y, H.i') }}</div>
-                        </div>
-                        <x-lencana :status="$p->status" />
+                <div class="flex items-start justify-between gap-3 py-3">
+                    <div class="leading-tight">
+                        <div class="font-semibold">{{ $p->jenis }} · {{ $rentang($p) }}</div>
+                        <div class="text-xs text-gray-500">Diajukan {{ $p->created_at->translatedFormat('j M Y, H.i') }}</div>
                     </div>
-
-                    @if ($p->status === 'Ditolak' && $p->alasan_penolakan)
-                        <p class="mt-2 rounded-xl bg-red-50 p-2 text-xs text-red-800">Alasan ditolak: {{ $p->alasan_penolakan }}</p>
-                    @endif
-
-                    <div class="mt-2 flex gap-3 text-xs font-semibold">
-                        @if ($p->bukti_path)
-                            <a href="{{ route('pengajuan.bukti', $p) }}" target="_blank" class="text-navy underline">Lihat bukti</a>
-                        @endif
-                        @if ($p->status === 'Menunggu')
-                            <form method="POST" action="{{ route('pegawai.izin.batal', $p) }}" onsubmit="return confirm('Batalkan pengajuan ini?')">
-                                @csrf
-                                @method('DELETE')
-                                <button class="text-merah underline">Batalkan</button>
-                            </form>
-                        @endif
-                    </div>
+                    <x-lencana :status="$p->status" />
                 </div>
             @empty
                 <p class="py-3 text-sm text-gray-500">Belum ada pengajuan.</p>
             @endforelse
         </div>
+
+        <p class="mt-2 rounded-xl bg-krem p-3 text-xs text-gray-600">
+            Pengajuan berstatus <b>Menunggu</b> masih dapat diedit atau dibatalkan dari menu
+            <a href="{{ $keRiwayat }}" class="font-semibold text-navy underline">Pengajuan</a>.
+        </p>
     </div>
 </div>
 @endsection

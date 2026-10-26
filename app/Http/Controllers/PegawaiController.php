@@ -2,16 +2,18 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\PengajuanIzin;
-use App\Models\Presensi;
-use App\Services\JadwalService;
-use Illuminate\Http\Request;
 use App\Models\KalenderEvent;
 use App\Models\Lembur;
+use App\Models\PengajuanIzin;
+use App\Models\Presensi;
+use App\Models\User;
+use App\Services\JadwalService;
 use App\Services\KalenderService;
 use App\Services\LemburService;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
+use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 
 class PegawaiController extends Controller
 {
@@ -30,7 +32,7 @@ class PegawaiController extends Controller
 
         // Batas presensi datang hari ini (paling lambat jam pulang)
         $batasDatang = $jadwalHariIni
-            ? \Carbon\Carbon::parse($sekarang->toDateString().' '.\App\Models\Pengaturan::ambil('batas_presensi_datang', '12:00'))
+            ? Carbon::parse($sekarang->toDateString().' '.\App\Models\Pengaturan::ambil('batas_presensi_datang', '12:00'))
                 ->min($jadwalHariIni['pulang'])
             : null;
 
@@ -80,9 +82,14 @@ class PegawaiController extends Controller
         ]);
     }
 
-    /** SR-F16: riwayat presensi per bulan & status pengajuan. */
+    /** SR-F16: riwayat presensi per bulan. */
     public function riwayat(Request $request, KalenderService $kalender)
     {
+        // Tautan lama (?tab=pengajuan) diarahkan ke menu Pengajuan
+        if ($request->query('tab') === 'pengajuan') {
+            return redirect()->route('pegawai.pengajuan');
+        }
+
         $user = $request->user()->load('unit');
 
         $bulan = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('bulan'))
@@ -131,40 +138,37 @@ class PegawaiController extends Controller
         }
         $hari = $hari->reverse()->values();
 
-        // Status semua pengajuan (izin, sakit, lembur), terbaru di atas
-        $pengajuan = PengajuanIzin::where('user_id', $user->id)->latest()->limit(20)->get()
-            ->map(fn ($p) => [
-                'jenis'   => $p->jenis,
-                'judul'   => $p->tanggal_mulai->equalTo($p->tanggal_selesai)
-                    ? $p->tanggal_mulai->translatedFormat('j F Y')
-                    : $p->tanggal_mulai->translatedFormat('j M').' – '.$p->tanggal_selesai->translatedFormat('j M Y'),
-                'status'  => $p->status,
-                'waktu'   => $p->created_at,
-                'catatan' => $p->alasan_penolakan,
-                'url'     => route('pegawai.izin'),
-            ])
-            ->concat(Lembur::where('user_id', $user->id)->latest()->limit(20)->get()->map(fn ($l) => [
-                'jenis'   => 'Lembur',
-                'judul'   => $l->tanggal->translatedFormat('j F Y').' · '.substr($l->jam_mulai, 0, 5).'–'.substr($l->jam_selesai, 0, 5)
-                    .($l->status === 'Disetujui' && $l->durasi_disetujui_menit !== null ? ' · diakui '.LemburService::formatMenit($l->durasi_disetujui_menit) : ''),
-                'status'  => $l->status,
-                'waktu'   => $l->created_at,
-                'catatan' => $l->alasan_penolakan,
-                'url'     => route('pegawai.lembur'),
-            ]))
-            ->sortByDesc('waktu')->values();
-
         return view('pegawai.riwayat', [
-            'judul'     => 'Riwayat',
-            'tab'       => $request->query('tab') === 'pengajuan' ? 'pengajuan' : 'presensi',
-            'bulan'     => $bulan,
-            'hari'      => $hari,
-            'pengajuan' => $pengajuan,
-            'ringkas'   => [
+            'judul'   => 'Riwayat Presensi',
+            'bulan'   => $bulan,
+            'hari'    => $hari,
+            'ringkas' => [
                 'Hadir'      => $hari->whereIn('status', ['Tepat Waktu', 'Terlambat'])->count(),
                 'Terlambat'  => $hari->where('status', 'Terlambat')->count(),
                 'Izin/Sakit' => $hari->whereIn('status', ['Izin', 'Sakit'])->count(),
                 'Alpa'       => $hari->where('status', 'Alpa')->count(),
+            ],
+        ]);
+    }
+
+    /** Menu Pengajuan: ajukan, pantau status, edit & batalkan (izin, sakit, lembur). */
+    public function pengajuan(Request $request)
+    {
+        $semua = $this->daftarPengajuan($request->user());
+
+        $status = in_array($request->query('status'), ['Menunggu', 'Disetujui', 'Ditolak'], true)
+            ? $request->query('status')
+            : null;
+
+        return view('pegawai.pengajuan', [
+            'judul'     => 'Pengajuan',
+            'pengajuan' => $status ? $semua->where('status', $status)->values() : $semua,
+            'status'    => $status,
+            'sorot'     => session('sorot'),
+            'ringkas'   => [
+                'Menunggu'  => $semua->where('status', 'Menunggu')->count(),
+                'Disetujui' => $semua->where('status', 'Disetujui')->count(),
+                'Ditolak'   => $semua->where('status', 'Ditolak')->count(),
             ],
         ]);
     }
@@ -180,5 +184,51 @@ class PegawaiController extends Controller
             'jamKerja'      => $user->jamKerja(),
             'wajahTerakhir' => $user->faceDescriptors()->latest()->value('created_at'),
         ]);
+    }
+
+    // ================= Helper =================
+
+    /** Gabungan izin, sakit, dan lembur (masing-masing 20 terbaru), urut terbaru di atas. */
+    private function daftarPengajuan(User $user): Collection
+    {
+        // "Diubah" jika updated_at > 1 menit setelah dibuat dan masih Menunggu
+        $diubah = fn ($m) => $m->status === 'Menunggu' && $m->updated_at?->gt($m->created_at->copy()->addMinute())
+            ? $m->updated_at
+            : null;
+
+        $izin = PengajuanIzin::where('user_id', $user->id)->latest()->limit(20)->get()
+            ->map(fn ($p) => [
+                'kunci'   => 'izin-'.$p->id,
+                'jenis'   => $p->jenis,
+                'judul'   => $p->tanggal_mulai->equalTo($p->tanggal_selesai)
+                    ? $p->tanggal_mulai->translatedFormat('j F Y')
+                    : $p->tanggal_mulai->translatedFormat('j M').' – '.$p->tanggal_selesai->translatedFormat('j M Y'),
+                'uraian'  => $p->alasan,
+                'status'  => $p->status,
+                'waktu'   => $p->created_at,
+                'diubah'  => $diubah($p),
+                'catatan' => $p->alasan_penolakan,
+                'bukti'   => $p->bukti_path ? route('pengajuan.bukti', $p) : null,
+                'edit'    => $p->status === 'Menunggu' ? route('pegawai.izin.edit', $p) : null,
+                'batal'   => $p->status === 'Menunggu' ? route('pegawai.izin.batal', $p) : null,
+            ]);
+
+        $lembur = Lembur::where('user_id', $user->id)->latest()->limit(20)->get()
+            ->map(fn ($l) => [
+                'kunci'   => 'lembur-'.$l->id,
+                'jenis'   => 'Lembur',
+                'judul'   => $l->tanggal->translatedFormat('j F Y').' · '.substr($l->jam_mulai, 0, 5).'–'.substr($l->jam_selesai, 0, 5)
+                    .($l->status === 'Disetujui' && $l->durasi_disetujui_menit !== null ? ' · diakui '.LemburService::formatMenit($l->durasi_disetujui_menit) : ''),
+                'uraian'  => $l->uraian,
+                'status'  => $l->status,
+                'waktu'   => $l->created_at,
+                'diubah'  => $diubah($l),
+                'catatan' => $l->alasan_penolakan,
+                'bukti'   => null,
+                'edit'    => $l->status === 'Menunggu' ? route('pegawai.lembur.edit', $l) : null,
+                'batal'   => $l->status === 'Menunggu' ? route('pegawai.lembur.batal', $l) : null,
+            ]);
+
+        return $izin->concat($lembur)->sortByDesc('waktu')->values();
     }
 }

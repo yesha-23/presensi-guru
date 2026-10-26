@@ -68,6 +68,11 @@
                             <div class="text-sm font-bold uppercase text-cyan-800">Pengajuan {{ $dipilih->jenis }}</div>
                             <h2 class="text-2xl font-extrabold">{{ $dipilih->user->nama_lengkap }}</h2>
                             <div class="text-sm text-gray-500">{{ $dipilih->user->kategori }} · {{ $dipilih->user->unit->nama }}</div>
+                            @if ($dipilih->updated_at?->gt($dipilih->created_at->copy()->addMinute()))
+                                <div class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+                                    <i data-lucide="pencil" class="h-3 w-3"></i> Diubah pegawai {{ $dipilih->updated_at->translatedFormat('j M, H.i') }}
+                                </div>
+                            @endif
                         </div>
                         <x-lencana :status="$dipilih->status" />
                     </div>
@@ -116,6 +121,7 @@
                     {{-- Satu form, dua tombol: Tolak & Setujui (formaction berbeda) --}}
                     <form method="POST" action="{{ route('persetujuan.izin.tolak', $dipilih) }}" class="mt-5">
                         @csrf
+                        <input type="hidden" name="versi" value="{{ $dipilih->updated_at?->timestamp }}">
                         <label class="block text-sm font-bold">Alasan penolakan <span class="font-normal text-gray-500">(wajib jika ditolak)</span>
                             <textarea name="alasan_penolakan" rows="3" maxlength="500"
                                       class="mt-1 w-full rounded-xl border border-garis px-3 py-2.5 text-sm font-normal outline-none focus:border-navy">{{ old('alasan_penolakan') }}</textarea>

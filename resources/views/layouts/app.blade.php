@@ -19,6 +19,9 @@
         ->filter()->take(2)
         ->map(fn ($kata) => mb_strtoupper(mb_substr($kata, 0, 1)))
         ->join('');
+
+    // Menu aktif: rute itu sendiri, turunannya (route.*), dan pola tambahan di kunci 'aktif' (opsional)
+    $menuAktif = fn (array $item) => request()->routeIs($item['route'], $item['route'].'.*', ...($item['aktif'] ?? []));
 @endphp
 <body class="bg-krem font-sans text-gray-900 antialiased">
 
@@ -55,8 +58,8 @@
 
     <nav class="mt-5 flex-1 space-y-1 overflow-y-auto">
         @foreach ($menu as $item)
-            @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
-            <a href="{{ route($item['route']) }}"
+            @php $aktif = $menuAktif($item); @endphp
+            <a href="{{ route($item['route']) }}" @if ($aktif) aria-current="page" @endif
                class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $aktif ? 'bg-merah-muda font-semibold text-merah' : 'font-medium text-gray-700 hover:bg-krem' }}">
                 <i data-lucide="{{ $item['ikon'] }}" class="h-[18px] w-[18px]"></i>
                 {{ $item['label'] }}
@@ -66,8 +69,8 @@
         @if ($menuPribadi)
             <div class="px-3 pb-1 pt-5 text-xs font-bold uppercase tracking-wide text-gray-400">Presensi saya</div>
             @foreach ($menuPribadi as $item)
-                @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
-                <a href="{{ route($item['route']) }}"
+                @php $aktif = $menuAktif($item); @endphp
+                <a href="{{ route($item['route']) }}" @if ($aktif) aria-current="page" @endif
                    class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $aktif ? 'bg-merah-muda font-semibold text-merah' : 'font-medium text-gray-700 hover:bg-krem' }}">
                     <i data-lucide="{{ $item['ikon'] }}" class="h-[18px] w-[18px]"></i>
                     {{ $item['label'] }}
@@ -107,15 +110,16 @@
     </main>
 </div>
 
-{{-- Navigasi bawah khusus Pegawai di HP --}}
+{{-- Navigasi bawah khusus Pegawai di HP: jumlah kolom mengikuti jumlah menu --}}
 @if ($peran === \App\Models\Role::PEGAWAI)
-    <nav class="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-garis bg-white lg:hidden">
+    <nav class="fixed inset-x-0 bottom-0 z-20 grid border-t border-garis bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+         style="grid-template-columns: repeat({{ max(count($menu), 1) }}, minmax(0, 1fr));">
         @foreach ($menu as $item)
-            @php $aktif = request()->routeIs($item['route'], $item['route'].'.*'); @endphp
-            <a href="{{ route($item['route']) }}"
-               class="flex flex-col items-center gap-1 py-2.5 text-xs {{ $aktif ? 'font-semibold text-merah' : 'text-gray-600' }}">
+            @php $aktif = $menuAktif($item); @endphp
+            <a href="{{ route($item['route']) }}" @if ($aktif) aria-current="page" @endif
+               class="flex flex-col items-center gap-1 px-1 py-2.5 text-[11px] leading-none {{ $aktif ? 'font-semibold text-merah' : 'text-gray-600' }}">
                 <i data-lucide="{{ $item['ikon'] }}" class="h-5 w-5"></i>
-                {{ $item['label'] }}
+                <span class="max-w-full truncate">{{ $item['label'] }}</span>
             </a>
         @endforeach
     </nav>

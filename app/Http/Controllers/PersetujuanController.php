@@ -111,6 +111,9 @@ class PersetujuanController extends Controller
     public function setujui(Request $request, PengajuanIzin $pengajuan, StatusHarianService $statusHarian)
     {
         $this->pastikanBoleh($request->user(), $pengajuan);
+        if ($this->versiBerubah($request, $pengajuan)) {
+            return $this->kembaliVersiBerubah(['id' => $pengajuan->id]);
+        }
 
         $pengajuan->update([
             'status'           => 'Disetujui',
@@ -136,6 +139,9 @@ class PersetujuanController extends Controller
     public function tolak(Request $request, PengajuanIzin $pengajuan)
     {
         $this->pastikanBoleh($request->user(), $pengajuan);
+        if ($this->versiBerubah($request, $pengajuan)) {
+            return $this->kembaliVersiBerubah(['id' => $pengajuan->id]);
+        }
         $this->validasiAlasan($request);
 
         $pengajuan->update([
@@ -152,10 +158,12 @@ class PersetujuanController extends Controller
     }
 
     // ================= Lembur =================
-
     public function setujuiLembur(Request $request, Lembur $lembur)
     {
         $this->pastikanBoleh($request->user(), $lembur);
+        if ($this->versiBerubah($request, $lembur)) {
+            return $this->kembaliVersiBerubah(['tab' => 'lembur', 'id' => $lembur->id]);
+        }
 
         $lembur->update([
             'status'                 => 'Disetujui',
@@ -175,6 +183,9 @@ class PersetujuanController extends Controller
     public function tolakLembur(Request $request, Lembur $lembur)
     {
         $this->pastikanBoleh($request->user(), $lembur);
+        if ($this->versiBerubah($request, $lembur)) {
+            return $this->kembaliVersiBerubah(['tab' => 'lembur', 'id' => $lembur->id]);
+        }
         $this->validasiAlasan($request);
 
         $lembur->update([
@@ -283,6 +294,25 @@ class PersetujuanController extends Controller
         );
     }
 
+    /**
+     * True jika pegawai mengubah pengajuan setelah halaman persetujuan dibuka.
+     * Nilai "versi" dikirim dari form persetujuan (updated_at saat halaman dimuat).
+     *
+     * @param PengajuanIzin|Lembur $pengajuan
+     */
+    private function versiBerubah(Request $request, $pengajuan): bool
+    {
+        $versi = $request->input('versi');
+
+        return $versi !== null && (string) $pengajuan->updated_at?->timestamp !== (string) $versi;
+    }
+
+    private function kembaliVersiBerubah(array $parameter)
+    {
+        return redirect()->route('persetujuan', $parameter)
+            ->with('galat', 'Pengajuan baru saja diubah oleh pegawai. Periksa kembali data terbaru sebelum memutuskan.');
+    }
+
     private function validasiAlasan(Request $request): void
     {
         $request->validate([
@@ -296,7 +326,8 @@ class PersetujuanController extends Controller
     /** Informasi pendukung keputusan izin/sakit. */
     private function info(PengajuanIzin $p): array
     {
-        $diajukan = $p->created_at->copy()->startOfDay();
+        // Jika pegawai mengedit, batas H-1/H+1 dihitung dari waktu edit terakhir
+        $diajukan = ($p->updated_at ?? $p->created_at)->copy()->startOfDay();
 
         $batasOk = $p->jenis === 'Izin'
             ? $diajukan->lt($p->tanggal_mulai)

@@ -3,11 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lembur;
+use App\Models\User;
 use App\Notifications\PengajuanLemburBaru;
+use App\Notifications\Pemberitahuan;
 use App\Services\JadwalService;
 use App\Services\PersetujuanService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Validator;
 
@@ -21,30 +24,165 @@ class LemburController extends Controller
 
     public function create(Request $request)
     {
-        $user = $request->user();
-        $jadwalHariIni = $this->jadwal->jadwal($user, now());
+        return $this->halaman($request, null);
+    }
 
-        return view('pegawai.lembur', [
-            'judul'     => 'Ajukan Lembur',
-            'riwayat'   => Lembur::where('user_id', $user->id)->latest()->limit(10)->get(),
-            'tujuan'    => $this->persetujuan->labelPenyetuju($user),
-            // nilai awal jam mulai = jadwal pulang hari ini (atau jam pulang normal)
-            'jamPulang' => $jadwalHariIni
-                ? $jadwalHariIni['pulang']->format('H:i')
-                : substr($user->jamKerja()?->jam_pulang ?? '15:00:00', 0, 5),
-        ]);
+    /** Form edit: hanya lembur milik sendiri yang masih Menunggu. */
+    public function edit(Request $request, Lembur $lembur)
+    {
+        abort_unless($lembur->user_id === $request->user()->id, 403);
+
+        if ($lembur->status !== 'Menunggu') {
+            return $this->keRiwayat('Pengajuan lembur ini sudah diproses sehingga tidak dapat diubah.', 'galat');
+        }
+
+        return $this->halaman($request, $lembur);
     }
 
     public function store(Request $request)
     {
         $user = $request->user();
+        $this->rapikanJam($request);
 
-        // Sebagian browser mengirim jam dalam format HH:MM:SS
+        $validator = $this->validator($request, $user, null);
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        $penyetuju = $this->persetujuan->penyetujuUntuk($user);
+        if ($penyetuju->isEmpty()) {
+            return back()->withInput()->with('galat', 'Penyetuju belum terdaftar. Hubungi administrator.');
+        }
+
+        $data = $validator->validated();
+
+        $lembur = Lembur::create([
+            'user_id'     => $user->id,
+            'tanggal'     => $data['tanggal'],
+            'jam_mulai'   => $data['jam_mulai'],
+            'jam_selesai' => $data['jam_selesai'],
+            'uraian'      => $data['uraian'],
+            'status'      => 'Menunggu',
+        ]);
+
+        Notification::send($penyetuju, new PengajuanLemburBaru($lembur));
+
+        return $this->keRiwayat(
+            'Pengajuan lembur terkirim ke '.$this->persetujuan->labelPenyetuju($user).'. Status: Menunggu.',
+            'sukses',
+            'lembur-'.$lembur->id
+        );
+    }
+
+    /** Simpan perubahan lembur yang masih Menunggu. */
+    public function update(Request $request, Lembur $lembur)
+    {
+        $user = $request->user();
+        abort_unless($lembur->user_id === $user->id, 403);
+        $this->rapikanJam($request);
+
+        $validator = $this->validator($request, $user, $lembur);
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+        $data = $validator->validated();
+
+        $berhasil = DB::transaction(function () use ($lembur, $data) {
+            $l = Lembur::whereKey($lembur->id)->lockForUpdate()->first();
+            if (! $l || $l->status !== 'Menunggu') {
+                return false;
+            }
+
+            $l->update([
+                'tanggal'     => $data['tanggal'],
+                'jam_mulai'   => $data['jam_mulai'],
+                'jam_selesai' => $data['jam_selesai'],
+                'uraian'      => $data['uraian'],
+            ]);
+
+            return true;
+        });
+
+        if (! $berhasil) {
+            return $this->keRiwayat('Pengajuan lembur sudah diproses penyetuju sehingga tidak dapat diubah.', 'galat');
+        }
+
+        $lembur->refresh();
+        $this->kabariPenyetuju(
+            $user,
+            "Pengajuan lembur diperbarui: {$user->nama_lengkap}",
+            $this->keterangan($lembur),
+            route('persetujuan', ['tab' => 'lembur', 'id' => $lembur->id])
+        );
+
+        return $this->keRiwayat('Perubahan pengajuan lembur disimpan. Status tetap Menunggu.', 'sukses', 'lembur-'.$lembur->id);
+    }
+
+    public function batal(Request $request, Lembur $lembur)
+    {
+        $user = $request->user();
+        abort_unless($lembur->user_id === $user->id, 403);
+
+        $keterangan = $this->keterangan($lembur);
+
+        $berhasil = DB::transaction(function () use ($lembur) {
+            $l = Lembur::whereKey($lembur->id)->lockForUpdate()->first();
+            if (! $l || $l->status !== 'Menunggu') {
+                return false;
+            }
+            $l->delete();
+
+            return true;
+        });
+
+        if (! $berhasil) {
+            return $this->keRiwayat('Pengajuan lembur sudah diproses penyetuju sehingga tidak dapat dibatalkan.', 'galat');
+        }
+
+        $this->kabariPenyetuju($user, "Pengajuan lembur dibatalkan: {$user->nama_lengkap}", $keterangan, route('persetujuan', ['tab' => 'lembur']));
+
+        return $this->keRiwayat('Pengajuan lembur dibatalkan.');
+    }
+
+    // ================= Helper =================
+
+    private function halaman(Request $request, ?Lembur $edit)
+    {
+        $user = $request->user();
+        $jadwalHariIni = $this->jadwal->jadwal($user, now());
+
+        return view('pegawai.lembur', [
+            'judul'     => $edit ? 'Edit Lembur' : 'Ajukan Lembur',
+            'riwayat'   => Lembur::where('user_id', $user->id)->latest()->limit(3)->get(),
+            'tujuan'    => $this->persetujuan->labelPenyetuju($user),
+            // nilai awal jam mulai = jadwal pulang hari ini (atau jam pulang normal)
+            'jamPulang' => $jadwalHariIni
+                ? $jadwalHariIni['pulang']->format('H:i')
+                : substr($user->jamKerja()?->jam_pulang ?? '15:00:00', 0, 5),
+            'edit'      => $edit,
+        ]);
+    }
+
+    /** Setelah berhasil, pegawai diarahkan ke menu Pengajuan. */
+    private function keRiwayat(string $pesan, string $tipe = 'sukses', ?string $sorot = null)
+    {
+        return redirect()->route('pegawai.pengajuan')
+            ->with($tipe, $pesan)
+            ->with('sorot', $sorot);
+    }
+
+    /** Sebagian browser mengirim jam dalam format HH:MM:SS */
+    private function rapikanJam(Request $request): void
+    {
         $request->merge([
             'jam_mulai'   => substr((string) $request->input('jam_mulai'), 0, 5),
             'jam_selesai' => substr((string) $request->input('jam_selesai'), 0, 5),
         ]);
+    }
 
+    /** Validasi bersama untuk pengajuan baru dan edit ($kecuali = lembur yang sedang diedit). */
+    private function validator(Request $request, User $user, ?Lembur $kecuali)
+    {
         $validator = Validator::make($request->all(), [
             'tanggal'     => ['required', 'date_format:Y-m-d'],
             'jam_mulai'   => ['required', 'date_format:H:i'],
@@ -60,7 +198,7 @@ class LemburController extends Controller
             'jam_selesai' => 'Jam selesai', 'uraian' => 'Uraian pekerjaan',
         ]);
 
-        $validator->after(function ($v) use ($request, $user) {
+        $validator->after(function ($v) use ($request, $user, $kecuali) {
             if ($v->errors()->hasAny(['tanggal', 'jam_mulai', 'jam_selesai'])) {
                 return;
             }
@@ -85,6 +223,7 @@ class LemburController extends Controller
             }
 
             $bentrok = Lembur::where('user_id', $user->id)
+                ->when($kecuali, fn ($q) => $q->whereKeyNot($kecuali->id))
                 ->whereDate('tanggal', $tanggal)
                 ->whereIn('status', ['Menunggu', 'Disetujui'])
                 ->exists();
@@ -94,38 +233,21 @@ class LemburController extends Controller
             }
         });
 
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $penyetuju = $this->persetujuan->penyetujuUntuk($user);
-        if ($penyetuju->isEmpty()) {
-            return back()->withInput()->with('galat', 'Penyetuju belum terdaftar. Hubungi administrator.');
-        }
-
-        $data = $validator->validated();
-
-        $lembur = Lembur::create([
-            'user_id'     => $user->id,
-            'tanggal'     => $data['tanggal'],
-            'jam_mulai'   => $data['jam_mulai'],
-            'jam_selesai' => $data['jam_selesai'],
-            'uraian'      => $data['uraian'],
-            'status'      => 'Menunggu',
-        ]);
-
-        Notification::send($penyetuju, new PengajuanLemburBaru($lembur));
-
-        return redirect()->route('pegawai.lembur')
-            ->with('sukses', 'Pengajuan lembur terkirim ke '.$this->persetujuan->labelPenyetuju($user).'. Status: Menunggu.');
+        return $validator;
     }
 
-    public function batal(Request $request, Lembur $lembur)
+    private function keterangan(Lembur $l): string
     {
-        abort_unless($lembur->user_id === $request->user()->id && $lembur->status === 'Menunggu', 403);
+        $jam = fn ($t) => str_replace(':', '.', substr($t, 0, 5));
 
-        $lembur->delete();
+        return $l->tanggal->translatedFormat('l, j F Y').' · '.$jam($l->jam_mulai).'–'.$jam($l->jam_selesai);
+    }
 
-        return back()->with('sukses', 'Pengajuan lembur dibatalkan.');
+    private function kabariPenyetuju(User $user, string $judul, string $keterangan, string $url): void
+    {
+        $penyetuju = $this->persetujuan->penyetujuUntuk($user);
+        if ($penyetuju->isNotEmpty()) {
+            Notification::send($penyetuju, new Pemberitahuan($judul, $keterangan, $url, 'pengajuan'));
+        }
     }
 }

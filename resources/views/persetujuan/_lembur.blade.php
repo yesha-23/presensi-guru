@@ -29,6 +29,11 @@
                         <div class="text-sm font-bold uppercase text-orange-800">Pengajuan lembur</div>
                         <h2 class="text-2xl font-extrabold">{{ $lemburDipilih->user->nama_lengkap }}</h2>
                         <div class="text-sm text-gray-500">{{ $lemburDipilih->user->kategori }} · {{ $lemburDipilih->user->unit->nama }}</div>
+                        @if ($lemburDipilih->updated_at?->gt($lemburDipilih->created_at->copy()->addMinute()))
+                            <div class="mt-1 inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-800">
+                                <i data-lucide="pencil" class="h-3 w-3"></i> Diubah pegawai {{ $lemburDipilih->updated_at->translatedFormat('j M, H.i') }}
+                            </div>
+                        @endif
                     </div>
                     <x-lencana :status="$lemburDipilih->status" />
                 </div>
@@ -67,6 +72,7 @@
 
                 <form method="POST" action="{{ route('persetujuan.lembur.tolak', $lemburDipilih) }}" class="mt-5">
                     @csrf
+                    <input type="hidden" name="versi" value="{{ $lemburDipilih->updated_at?->timestamp }}">
                     <label class="block text-sm font-bold">Alasan penolakan <span class="font-normal text-gray-500">(wajib jika ditolak)</span>
                         <textarea name="alasan_penolakan" rows="3" maxlength="500"
                                   class="mt-1 w-full rounded-xl border border-garis px-3 py-2.5 text-sm font-normal outline-none focus:border-navy">{{ old('alasan_penolakan') }}</textarea>

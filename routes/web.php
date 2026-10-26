@@ -92,16 +92,21 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
     Route::middleware('peran:'.Role::PEGAWAI)->prefix('pegawai')->name('pegawai.')->group(function () {
         Route::get('/beranda', [PegawaiController::class, 'beranda'])->name('beranda');
         Route::get('/riwayat', [PegawaiController::class, 'riwayat'])->name('riwayat');
+        Route::get('/pengajuan', [PegawaiController::class, 'pengajuan'])->name('pengajuan');
         Route::get('/profil', [PegawaiController::class, 'profil'])->name('profil');
 
         // Izin & sakit
         Route::get('/izin', [IzinController::class, 'create'])->name('izin');
         Route::post('/izin', [IzinController::class, 'store'])->name('izin.store');
+        Route::get('/izin/{pengajuan}/edit', [IzinController::class, 'edit'])->name('izin.edit');
+        Route::put('/izin/{pengajuan}', [IzinController::class, 'update'])->name('izin.update');
         Route::delete('/izin/{pengajuan}', [IzinController::class, 'batal'])->name('izin.batal');
 
         // Lembur
         Route::get('/lembur', [LemburController::class, 'create'])->name('lembur');
         Route::post('/lembur', [LemburController::class, 'store'])->name('lembur.store');
+        Route::get('/lembur/{lembur}/edit', [LemburController::class, 'edit'])->name('lembur.edit');
+        Route::put('/lembur/{lembur}', [LemburController::class, 'update'])->name('lembur.update');
         Route::delete('/lembur/{lembur}', [LemburController::class, 'batal'])->name('lembur.batal');
 
         Route::get('/surat-tugas', [PegawaiController::class, 'suratTugas'])->name('surat-tugas');
