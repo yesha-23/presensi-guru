@@ -68,21 +68,13 @@ class PegawaiController extends Controller
         ]);
     }
 
-    public function suratTugas(Request $request)
+    /** Alamat lama: surat tugas kini menjadi tab di halaman Riwayat. */
+    public function suratTugas()
     {
-        $surat = $request->user()->suratTugas()
-            ->with('persetujuan')
-            ->whereIn('surat_tugas.status', ['Menunggu', 'Disetujui'])
-            ->orderByDesc('tanggal_mulai')
-            ->get();
-
-        return view('pegawai.surat-tugas', [
-            'judul' => 'Surat Tugas Saya',
-            'surat' => $surat,
-        ]);
+        return redirect()->route('pegawai.riwayat', ['tab' => 'surat-tugas']);
     }
 
-    /** SR-F16: riwayat presensi per bulan. */
+    /** SR-F16: riwayat presensi per bulan & surat tugas pribadi. */
     public function riwayat(Request $request, KalenderService $kalender)
     {
         // Tautan lama (?tab=pengajuan) diarahkan ke menu Pengajuan
@@ -91,6 +83,7 @@ class PegawaiController extends Controller
         }
 
         $user = $request->user()->load('unit');
+        $tab = $request->query('tab') === 'surat-tugas' ? 'surat-tugas' : 'presensi';
 
         $bulan = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('bulan'))
             ? Carbon::createFromFormat('Y-m-d', $request->query('bulan').'-01')->startOfDay()
@@ -98,57 +91,17 @@ class PegawaiController extends Controller
         if ($bulan->gt(today())) {
             $bulan = today()->startOfMonth();
         }
-        $akhirBulan = $bulan->copy()->endOfMonth()->startOfDay();
-        $sampai = $akhirBulan->copy()->min(today());
 
-        $presensi = Presensi::where('user_id', $user->id)
-            ->whereBetween('tanggal', [$bulan->toDateString(), $akhirBulan->toDateString()])
-            ->get()->keyBy(fn ($p) => $p->tanggal->toDateString());
-        $entri = $kalender->entri($user->unit_id, $bulan, $akhirBulan);
+        $data = [
+            'judul' => 'Riwayat',
+            'tab'   => $tab,
+            'bulan' => $bulan,
+        ];
 
-        // Satu baris per hari kerja (dan hari libur yang punya catatan), terbaru di atas
-        $hari = collect();
-        if ($sampai->gte($bulan)) {
-            foreach (CarbonPeriod::create($bulan, $sampai) as $t) {
-                $t = $t->copy();
-                $p = $presensi->get($t->toDateString());
-                $jenis = $kalender->jenisHari($t, $entri);
-
-                if (! $p && in_array($jenis, ['nonkerja', 'libur'], true)) {
-                    continue;
-                }
-
-                $hkt = $jenis === 'hkt'
-                    ? $entri->first(fn ($e) => $e->kategori === KalenderEvent::HARI_KERJA_TAMBAHAN
-                        && $t->between($e->tanggal_mulai, $e->tanggal_selesai))
-                    : null;
-
-                $hari->push([
-                    'tanggal'  => $t,
-                    'presensi' => $p,
-                    'hkt'      => $hkt?->nama,
-                    'status'   => match (true) {
-                        (bool) $p?->jam_datang    => $p->status_datang,
-                        (bool) $p?->status_harian => $p->status_harian,
-                        $t->isToday()             => 'Belum Presensi',
-                        default                   => 'Alpa',
-                    },
-                ]);
-            }
-        }
-        $hari = $hari->reverse()->values();
-
-        return view('pegawai.riwayat', [
-            'judul'   => 'Riwayat Presensi',
-            'bulan'   => $bulan,
-            'hari'    => $hari,
-            'ringkas' => [
-                'Hadir'      => $hari->whereIn('status', ['Tepat Waktu', 'Terlambat'])->count(),
-                'Terlambat'  => $hari->where('status', 'Terlambat')->count(),
-                'Izin/Sakit' => $hari->whereIn('status', ['Izin', 'Sakit'])->count(),
-                'Alpa'       => $hari->where('status', 'Alpa')->count(),
-            ],
-        ]);
+        // Hanya data tab yang sedang dibuka yang diambil
+        return view('pegawai.riwayat', $tab === 'presensi'
+            ? $data + $this->dataPresensi($user, $bulan, $kalender)
+            : $data + $this->dataSuratTugas($user) + ['sorot' => $request->query('sorot')]);
     }
 
     /** Menu Pengajuan: ajukan, pantau status, edit & batalkan (izin, sakit, lembur). */
@@ -187,6 +140,103 @@ class PegawaiController extends Controller
     }
 
     // ================= Helper =================
+
+    /** Tab Presensi: satu baris per hari kerja (dan hari libur yang punya catatan), terbaru di atas. */
+    private function dataPresensi(User $user, Carbon $bulan, KalenderService $kalender): array
+    {
+        $akhirBulan = $bulan->copy()->endOfMonth()->startOfDay();
+        $sampai = $akhirBulan->copy()->min(today());
+
+        $presensi = Presensi::where('user_id', $user->id)
+            ->whereBetween('tanggal', [$bulan->toDateString(), $akhirBulan->toDateString()])
+            ->get()->keyBy(fn ($p) => $p->tanggal->toDateString());
+        $entri = $kalender->entri($user->unit_id, $bulan, $akhirBulan);
+
+        $hari = collect();
+        if ($sampai->gte($bulan)) {
+            foreach (CarbonPeriod::create($bulan, $sampai) as $t) {
+                $t = $t->copy();
+                $p = $presensi->get($t->toDateString());
+                $jenis = $kalender->jenisHari($t, $entri);
+
+                if (! $p && in_array($jenis, ['nonkerja', 'libur'], true)) {
+                    continue;
+                }
+
+                $hkt = $jenis === 'hkt'
+                    ? $entri->first(fn ($e) => $e->kategori === KalenderEvent::HARI_KERJA_TAMBAHAN
+                        && $t->between($e->tanggal_mulai, $e->tanggal_selesai))
+                    : null;
+
+                $hari->push([
+                    'tanggal'  => $t,
+                    'presensi' => $p,
+                    'hkt'      => $hkt?->nama,
+                    // Status Tugas Khusus merujuk ke surat_tugas (referensi polimorfik)
+                    'surat_id' => $p?->status_harian === 'Tugas Khusus' ? $p->referensi_id : null,
+                    'status'   => match (true) {
+                        (bool) $p?->jam_datang    => $p->status_datang,
+                        (bool) $p?->status_harian => $p->status_harian,
+                        $t->isToday()             => 'Belum Presensi',
+                        default                   => 'Alpa',
+                    },
+                ]);
+            }
+        }
+        $hari = $hari->reverse()->values();
+
+        return [
+            'hari'    => $hari,
+            'ringkas' => [
+                'Hadir'      => $hari->whereIn('status', ['Tepat Waktu', 'Terlambat'])->count(),
+                'Terlambat'  => $hari->where('status', 'Terlambat')->count(),
+                'Izin/Sakit' => $hari->whereIn('status', ['Izin', 'Sakit'])->count(),
+                'Alpa'       => $hari->where('status', 'Alpa')->count(),
+            ],
+        ];
+    }
+
+    /** Tab Surat Tugas: berlangsung → akan datang (terdekat dulu) → selesai (terbaru dulu). */
+    private function dataSuratTugas(User $user): array
+    {
+        $hariIni = today();
+
+        $tahap = fn ($s) => match (true) {
+            $hariIni->between($s->tanggal_mulai, $s->tanggal_selesai) => 'Berlangsung',
+            $s->tanggal_mulai->gt($hariIni)                            => 'Akan datang',
+            default                                                    => 'Selesai',
+        };
+        $urutan = ['Berlangsung' => 0, 'Akan datang' => 1, 'Selesai' => 2];
+
+        $surat = $user->suratTugas()
+            ->with('persetujuan')
+            ->whereIn('surat_tugas.status', ['Menunggu', 'Disetujui'])
+            ->orderByDesc('tanggal_mulai')
+            ->limit(50)
+            ->get()
+            ->each(fn ($s) => $s->setAttribute('tahap', $tahap($s)))
+            ->sort(function ($a, $b) use ($urutan) {
+                $beda = $urutan[$a->tahap] <=> $urutan[$b->tahap];
+                if ($beda !== 0) {
+                    return $beda;
+                }
+
+                // Akan datang: paling dekat dulu; lainnya: terbaru dulu
+                return $a->tahap === 'Akan datang'
+                    ? $a->tanggal_mulai->timestamp <=> $b->tanggal_mulai->timestamp
+                    : $b->tanggal_mulai->timestamp <=> $a->tanggal_mulai->timestamp;
+            })
+            ->values();
+
+        return [
+            'surat'       => $surat,
+            'ringkasSurat' => [
+                'Berlangsung' => $surat->where('tahap', 'Berlangsung')->count(),
+                'Akan datang' => $surat->where('tahap', 'Akan datang')->count(),
+                'Selesai'     => $surat->where('tahap', 'Selesai')->count(),
+            ],
+        ];
+    }
 
     /** Gabungan izin, sakit, dan lembur (masing-masing 20 terbaru), urut terbaru di atas. */
     private function daftarPengajuan(User $user): Collection

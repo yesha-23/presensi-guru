@@ -39,10 +39,9 @@ return [
 
     // Menu pribadi untuk kepala sekolah & administrator yang juga berperan Pegawai
     'Pribadi' => [
-        ['label' => 'Beranda saya',     'route' => 'pegawai.beranda',     'ikon' => 'house'],
-        ['label' => 'Pengajuan saya',   'route' => 'pegawai.pengajuan',   'ikon' => 'file-plus-2',
+        ['label' => 'Beranda saya',   'route' => 'pegawai.beranda',   'ikon' => 'house'],
+        ['label' => 'Pengajuan saya', 'route' => 'pegawai.pengajuan', 'ikon' => 'file-plus-2',
             'aktif' => ['pegawai.izin*', 'pegawai.lembur*']],
-        ['label' => 'Riwayat presensi', 'route' => 'pegawai.riwayat',     'ikon' => 'list'],
-        ['label' => 'Surat tugas saya', 'route' => 'pegawai.surat-tugas', 'ikon' => 'briefcase'],
+        ['label' => 'Riwayat saya',   'route' => 'pegawai.riwayat',   'ikon' => 'list'],
     ],
 ];
