@@ -101,7 +101,7 @@ class PegawaiController extends Controller
         // Hanya data tab yang sedang dibuka yang diambil
         return view('pegawai.riwayat', $tab === 'presensi'
             ? $data + $this->dataPresensi($user, $bulan, $kalender)
-            : $data + $this->dataSuratTugas($user) + ['sorot' => $request->query('sorot')]);
+            : $data + $this->dataSuratTugas($user, $bulan) + ['sorot' => $request->query('sorot')]);
     }
 
     /** Menu Pengajuan: ajukan, pantau status, edit & batalkan (izin, sakit, lembur). */
@@ -196,45 +196,41 @@ class PegawaiController extends Controller
         ];
     }
 
-    /** Tab Surat Tugas: berlangsung → akan datang (terdekat dulu) → selesai (terbaru dulu). */
-    private function dataSuratTugas(User $user): array
+    /**
+     * Tab Surat Tugas:
+     * - aktif : berlangsung & akan datang (tidak ikut filter bulan), terdekat dulu
+     * - arsip : sudah selesai, per bulan, terbaru dulu
+     */
+    private function dataSuratTugas(User $user, Carbon $bulan): array
     {
         $hariIni = today();
+        $akhirBulan = $bulan->copy()->endOfMonth()->startOfDay();
 
-        $tahap = fn ($s) => match (true) {
-            $hariIni->between($s->tanggal_mulai, $s->tanggal_selesai) => 'Berlangsung',
-            $s->tanggal_mulai->gt($hariIni)                            => 'Akan datang',
-            default                                                    => 'Selesai',
-        };
-        $urutan = ['Berlangsung' => 0, 'Akan datang' => 1, 'Selesai' => 2];
-
-        $surat = $user->suratTugas()
+        $dasar = fn () => $user->suratTugas()
             ->with('persetujuan')
-            ->whereIn('surat_tugas.status', ['Menunggu', 'Disetujui'])
-            ->orderByDesc('tanggal_mulai')
-            ->limit(50)
-            ->get()
-            ->each(fn ($s) => $s->setAttribute('tahap', $tahap($s)))
-            ->sort(function ($a, $b) use ($urutan) {
-                $beda = $urutan[$a->tahap] <=> $urutan[$b->tahap];
-                if ($beda !== 0) {
-                    return $beda;
-                }
+            ->whereIn('surat_tugas.status', ['Menunggu', 'Disetujui']);
 
-                // Akan datang: paling dekat dulu; lainnya: terbaru dulu
-                return $a->tahap === 'Akan datang'
-                    ? $a->tanggal_mulai->timestamp <=> $b->tanggal_mulai->timestamp
-                    : $b->tanggal_mulai->timestamp <=> $a->tanggal_mulai->timestamp;
-            })
-            ->values();
+        // Belum selesai: yang sedang berlangsung otomatis di atas karena mulainya lebih awal
+        $aktif = $dasar()
+            ->whereDate('surat_tugas.tanggal_selesai', '>=', $hariIni)
+            ->orderBy('surat_tugas.tanggal_mulai')
+            ->get()
+            ->each(fn ($s) => $s->setAttribute(
+                'tahap',
+                $s->tanggal_mulai->lte($hariIni) ? 'Berlangsung' : 'Akan datang'
+            ));
+
+        // Sudah selesai dan rentang tanggalnya bersinggungan dengan bulan yang dipilih
+        $arsip = $dasar()
+            ->whereDate('surat_tugas.tanggal_selesai', '<', $hariIni)
+            ->whereDate('surat_tugas.tanggal_mulai', '<=', $akhirBulan)
+            ->whereDate('surat_tugas.tanggal_selesai', '>=', $bulan)
+            ->orderByDesc('surat_tugas.tanggal_mulai')
+            ->get();
 
         return [
-            'surat'       => $surat,
-            'ringkasSurat' => [
-                'Berlangsung' => $surat->where('tahap', 'Berlangsung')->count(),
-                'Akan datang' => $surat->where('tahap', 'Akan datang')->count(),
-                'Selesai'     => $surat->where('tahap', 'Selesai')->count(),
-            ],
+            'aktif' => $aktif,
+            'arsip' => $arsip,
         ];
     }
 
