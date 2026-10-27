@@ -104,22 +104,17 @@ class PresensiController extends Controller
 
         $j = $jadwal->jadwal($user, $waktu);
 
-        // Batas presensi datang (aturan yayasan): lewat batas, presensi datang ditolak;
-        // di akhir hari tercatat Alpa kecuali ada izin/sakit/tugas yang disetujui.
-        if (! $presensi->jam_datang) {
-            $batasDatang = Carbon::parse($waktu->toDateString().' '.Pengaturan::ambil('batas_presensi_datang', '12:00'))
-                ->min($j['pulang']);
-
-            if ($waktu->gt($batasDatang)) {
-                return response()->json([
-                    'hasil' => 'info',
-                    'judul' => 'Batas presensi datang sudah lewat',
-                    'nama'  => $user->nama_lengkap,
-                    'pesan' => 'Presensi datang hanya dapat dilakukan sampai pukul '.$batasDatang->format('H.i')
-                        .'. Hari ini akan tercatat Alpa, kecuali Anda memiliki izin, sakit, atau tugas khusus yang disetujui. '
-                        .'Jika sakit, ajukan Sakit paling lambat besok. Untuk kendala lain, hubungi Kepala Bagian Administrasi Umum.',
-                ]);
-            }
+        // Presensi datang setelah batas (mis. 12.00) TETAP dicatat dengan status "Lewat Batas".
+        // Yang ditolak hanya presensi datang setelah jam kerja berakhir (jadwal pulang).
+        if (! $presensi->jam_datang && $waktu->gte($j['pulang'])) {
+            return response()->json([
+                'hasil' => 'info',
+                'judul' => 'Jam kerja hari ini sudah berakhir',
+                'nama'  => $user->nama_lengkap,
+                'pesan' => 'Presensi datang hanya dapat dilakukan sebelum jadwal pulang ('.$j['pulang']->format('H.i').'). '
+                    .'Hari ini akan tercatat Alpa, kecuali Anda memiliki izin, sakit, atau tugas khusus yang disetujui. '
+                    .'Jika Anda sebenarnya hadir tetapi gagal presensi, hubungi Kepala Bagian Administrasi Umum untuk koreksi.',
+            ]);
         }
 
         $bukti = [
@@ -260,16 +255,17 @@ class PresensiController extends Controller
 
     private function simpanDatang(Presensi $presensi, User $user, Carbon $waktu, array $j, array $bukti, array $infoJarak): JsonResponse
     {
-        // Tepat waktu jika paling lambat 07.15.00; terlambat dihitung dari 07.00 (Bagian 2)
-        $batas = $j['masuk']->copy()->addMinutes($j['toleransi']);
-        $terlambat = $waktu->gt($batas);
-        $detik = $terlambat ? $waktu->timestamp - $j['masuk']->timestamp : 0;
+        // Tepat Waktu / Terlambat / Lewat Batas (aturan di model Presensi)
+        $hitung = Presensi::hitungDatang($waktu, $j);
+        $status = $hitung['status_datang'];
+        $lewatBatas = $status === Presensi::LEWAT_BATAS;
+        $terlambat = $status !== 'Tepat Waktu';
 
         $presensi->fill([
             'status_harian'     => 'Hadir',
             'jam_datang'        => $waktu->format('H:i:s'),
-            'status_datang'     => $terlambat ? 'Terlambat' : 'Tepat Waktu',
-            'detik_terlambat'   => $detik,
+            'status_datang'     => $status,
+            'detik_terlambat'   => $hitung['detik_terlambat'],
             'foto_datang'       => $bukti['foto'],
             'lat_datang'        => $bukti['lat'],
             'lng_datang'        => $bukti['lng'],
@@ -278,12 +274,17 @@ class PresensiController extends Controller
         ])->save();
 
         return $this->berhasil($presensi, $user, 'datang', [
-            'judul'      => $terlambat ? 'Presensi Datang Tercatat' : 'Presensi Datang Berhasil',
-            'jenis'      => 'Datang',
-            'waktu'      => $waktu->format('H:i:s'),
-            'status'     => $terlambat ? 'Terlambat' : 'Tepat Waktu',
-            'peringatan' => $terlambat,
-            'keterangan' => Presensi::formatDetik($detik),
+            'judul'       => $terlambat ? 'Presensi Datang Tercatat' : 'Presensi Datang Berhasil',
+            'jenis'       => 'Datang',
+            'waktu'       => $waktu->format('H:i:s'),
+            'status'      => $status,
+            'peringatan'  => $terlambat,
+            'lewat_batas' => $lewatBatas,
+            'keterangan'  => Presensi::formatDetik($hitung['detik_terlambat']),
+            'catatan'     => $lewatBatas
+                ? 'Presensi melewati batas pukul '.Presensi::batasDatang($j)->format('H.i')
+                    .'. Kehadiran tetap tercatat dengan label Lewat Batas dan terlihat di rekap.'
+                : null,
         ] + $infoJarak);
     }
 

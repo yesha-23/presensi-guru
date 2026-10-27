@@ -106,7 +106,11 @@
 
                     <div class="shrink-0 md:text-right">
                         <x-lencana :status="$h['status']"
-                                   :teks="$h['status'] === 'Terlambat' ? 'Terlambat '.\App\Models\Presensi::formatDetik($p->detik_terlambat) : null" />
+                                   :teks="match ($h['status']) {
+                                       'Terlambat'   => 'Terlambat '.\App\Models\Presensi::formatDetik($p->detik_terlambat),
+                                       'Lewat Batas' => 'Lewat batas '.\App\Models\Presensi::formatDetik($p->detik_terlambat),
+                                       default       => null,
+                                   }" />
                     </div>
                 </div>
             @empty

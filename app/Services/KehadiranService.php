@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 class KehadiranService
 {
     private const URUTAN = [
-        'Tepat Waktu' => 0, 'Terlambat' => 0, 'Izin' => 1, 'Sakit' => 1,
+        'Tepat Waktu' => 0, 'Terlambat' => 0, 'Lewat Batas' => 0, 'Izin' => 1, 'Sakit' => 1,
         'Tugas Khusus' => 2, 'Belum Presensi' => 3, 'Libur' => 4,
     ];
 
@@ -20,7 +20,7 @@ class KehadiranService
 
     /**
      * Status kehadiran hari ini untuk setiap pegawai wajib presensi:
-     * Tepat Waktu / Terlambat (sudah datang), Izin, Sakit, Tugas Khusus, Libur, atau Belum Presensi.
+     * Tepat Waktu / Terlambat / Lewat Batas (sudah datang), Izin, Sakit, Tugas Khusus, Libur, atau Belum Presensi.
      */
     public function hariIni(?int $unitId = null): Collection
     {
@@ -62,8 +62,8 @@ class KehadiranService
 
         return [
             'total'      => $wajib->count(),
-            'hadir'      => $wajib->whereIn('status', ['Tepat Waktu', 'Terlambat'])->count(),
-            'terlambat'  => $wajib->where('status', 'Terlambat')->count(),
+            'hadir'      => $wajib->whereIn('status', ['Tepat Waktu', 'Terlambat', 'Lewat Batas'])->count(),
+            'terlambat'  => $wajib->whereIn('status', ['Terlambat', 'Lewat Batas'])->count(),
             'belum'      => $wajib->where('status', 'Belum Presensi')->count(),
             'izin_sakit' => $wajib->whereIn('status', ['Izin', 'Sakit'])->count(),
             'tugas'      => $wajib->where('status', 'Tugas Khusus')->count(),

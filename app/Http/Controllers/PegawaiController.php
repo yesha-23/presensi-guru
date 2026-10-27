@@ -17,6 +17,12 @@ use Illuminate\Support\Collection;
 
 class PegawaiController extends Controller
 {
+    /** Status datang yang berarti pegawai hadir. */
+    private const HADIR = ['Tepat Waktu', 'Terlambat', Presensi::LEWAT_BATAS];
+
+    /** Status datang yang dihitung terlambat. */
+    private const TERLAMBAT = ['Terlambat', Presensi::LEWAT_BATAS];
+
     public function beranda(Request $request, JadwalService $jadwal)
     {
         $user = $request->user()->load('unit');
@@ -30,11 +36,8 @@ class PegawaiController extends Controller
         $kondisi = $jadwal->kondisiKhusus($user, $sekarang);
         $jadwalHariIni = $kondisi ? null : $jadwal->jadwal($user, $sekarang);
 
-        // Batas presensi datang hari ini (paling lambat jam pulang)
-        $batasDatang = $jadwalHariIni
-            ? Carbon::parse($sekarang->toDateString().' '.\App\Models\Pengaturan::ambil('batas_presensi_datang', '12:00'))
-                ->min($jadwalHariIni['pulang'])
-            : null;
+        // Batas presensi datang hari ini (lewat dari ini berlabel "Lewat Batas")
+        $batasDatang = $jadwalHariIni ? Presensi::batasDatang($jadwalHariIni) : null;
 
         $bulanIni = Presensi::where('user_id', $user->id)
             ->whereYear('tanggal', $sekarang->year)
@@ -43,7 +46,7 @@ class PegawaiController extends Controller
 
         $rekap = [
             'Hadir'     => $bulanIni->where('status_harian', 'Hadir')->count(),
-            'Terlambat' => $bulanIni->where('status_datang', 'Terlambat')->count(),
+            'Terlambat' => $bulanIni->whereIn('status_datang', self::TERLAMBAT)->count(),
             'Izin'      => $bulanIni->where('status_harian', 'Izin')->count(),
             'Sakit'     => $bulanIni->where('status_harian', 'Sakit')->count(),
         ];
@@ -188,8 +191,8 @@ class PegawaiController extends Controller
         return [
             'hari'    => $hari,
             'ringkas' => [
-                'Hadir'      => $hari->whereIn('status', ['Tepat Waktu', 'Terlambat'])->count(),
-                'Terlambat'  => $hari->where('status', 'Terlambat')->count(),
+                'Hadir'      => $hari->whereIn('status', self::HADIR)->count(),
+                'Terlambat'  => $hari->whereIn('status', self::TERLAMBAT)->count(),
                 'Izin/Sakit' => $hari->whereIn('status', ['Izin', 'Sakit'])->count(),
                 'Alpa'       => $hari->where('status', 'Alpa')->count(),
             ],

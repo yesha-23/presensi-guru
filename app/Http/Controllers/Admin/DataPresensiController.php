@@ -23,7 +23,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 class DataPresensiController extends Controller
 {
     public const FILTER_STATUS = [
-        'Tepat Waktu', 'Terlambat', 'Pulang Cepat', 'Tidak Presensi Pulang',
+        'Tepat Waktu', 'Terlambat', Presensi::LEWAT_BATAS, 'Pulang Cepat', 'Tidak Presensi Pulang',
         'Izin', 'Sakit', 'Tugas Khusus', 'Alpa', 'Libur', 'Belum Presensi',
     ];
 
@@ -70,9 +70,9 @@ class DataPresensiController extends Controller
             'jam_pulang'    => ['nullable', 'date_format:H:i:s'],
             'alasan'        => ['required', 'string', 'min:5', 'max:500'],
         ], [
-            'alasan.required'        => 'Alasan edit wajib diisi.',
-            'alasan.min'             => 'Alasan edit minimal 5 karakter.',
-            'date_format'            => 'Format :attribute harus HH:MM:SS.',
+            'alasan.required'         => 'Alasan edit wajib diisi.',
+            'alasan.min'              => 'Alasan edit minimal 5 karakter.',
+            'date_format'             => 'Format :attribute harus HH:MM:SS.',
             'tanggal.before_or_equal' => 'Presensi tanggal yang akan datang tidak dapat diubah.',
         ], [
             'jam_datang' => 'jam datang', 'jam_pulang' => 'jam pulang',
@@ -199,9 +199,9 @@ class DataPresensiController extends Controller
     public static function statusPulang(?Presensi $p, Carbon $tanggal): string
     {
         return match (true) {
-            (bool) $p?->jam_pulang                              => $p->pulang_cepat ? 'Pulang Cepat' : 'Tepat Waktu',
-            (bool) $p?->jam_datang && $tanggal->lt(today())     => 'Tidak Presensi Pulang',
-            default                                             => '—',
+            (bool) $p?->jam_pulang                          => $p->pulang_cepat ? 'Pulang Cepat' : 'Tepat Waktu',
+            (bool) $p?->jam_datang && $tanggal->lt(today()) => 'Tidak Presensi Pulang',
+            default                                         => '—',
         };
     }
 
@@ -238,12 +238,12 @@ class DataPresensiController extends Controller
         });
 
         return match ($status) {
-            'Tepat Waktu', 'Terlambat' => $ada(fn ($p) => $p->where('status_datang', $status)),
-            'Pulang Cepat'             => $ada(fn ($p) => $p->where('pulang_cepat', true)),
-            'Tidak Presensi Pulang'    => $ada(fn ($p) => $p->whereNotNull('jam_datang')->whereNull('jam_pulang')),
-            'Belum Presensi'           => $query->whereDoesntHave('presensi', fn ($p) => $p
+            'Tepat Waktu', 'Terlambat', Presensi::LEWAT_BATAS => $ada(fn ($p) => $p->where('status_datang', $status)),
+            'Pulang Cepat'                                    => $ada(fn ($p) => $p->where('pulang_cepat', true)),
+            'Tidak Presensi Pulang'                           => $ada(fn ($p) => $p->whereNotNull('jam_datang')->whereNull('jam_pulang')),
+            'Belum Presensi'                                  => $query->whereDoesntHave('presensi', fn ($p) => $p
                 ->whereDate('tanggal', $tanggal)->whereNotNull('status_harian')),
-            default                    => $ada(fn ($p) => $p->where('status_harian', $status)),
+            default                                           => $ada(fn ($p) => $p->where('status_harian', $status)),
         };
     }
 }

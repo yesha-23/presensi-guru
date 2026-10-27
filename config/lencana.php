@@ -6,6 +6,7 @@ return [
     'Tepat Waktu'    => 'bg-blue-50 text-blue-800',
     'Hadir'          => 'bg-blue-50 text-blue-800',
     'Terlambat'      => 'bg-orange-100 text-orange-800',
+    'Lewat Batas'    => 'bg-red-50 text-red-700',
     'Pulang Cepat'   => 'bg-orange-100 text-orange-800',
     'Izin'           => 'bg-cyan-100 text-cyan-800',
     'Sakit'          => 'bg-cyan-100 text-cyan-800',

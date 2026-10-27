@@ -550,7 +550,8 @@ async function jalankan(akar) {
 
     // Hasil berhasil + hitung mundur 5 detik
     function popupBerhasil(d) {
-        const warna = d.peringatan ? 'peringatan' : 'baik';
+        // Lewat batas = merah, terlambat / pulang cepat = oranye, tepat waktu = biru
+        const warna = d.lewat_batas ? 'gagal' : d.peringatan ? 'peringatan' : 'baik';
 
         bukaPopup(
             kepala(d.peringatan ? 'jam' : 'centang', warna, d.judul, d.nama) +
@@ -561,7 +562,8 @@ async function jalankan(akar) {
                 baris('Keterangan', esc(d.keterangan)) +
                 baris('Jarak', esc(teksJarak(d))) +
                 (modeDebug ? baris('Waktu proses', `${esc(totalDetik())} detik`) : '')
-            ) + `
+            ) +
+            (d.catatan ? `<p class="mt-3 rounded-2xl bg-red-50 p-3 text-center text-sm text-red-800">${esc(d.catatan)}</p>` : '') + `
             <div class="mt-5 flex justify-between text-sm">
                 <span class="text-gray-600">Masuk dashboard otomatis</span>
                 <span class="font-bold"><span id="sisa-detik">5</span> detik</span>

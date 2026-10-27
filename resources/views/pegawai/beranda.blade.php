@@ -10,7 +10,9 @@
             : 'Bukan hari kerja');
 
     $lengkap = $hariIni?->jam_datang && $hariIni?->jam_pulang;
+    // Belum datang & sudah lewat batas 12.00: masih bisa presensi (berlabel Lewat Batas) sampai jam pulang
     $lewatBatas = $batasDatang && ! $hariIni?->jam_datang && now()->gt($batasDatang);
+    $kerjaSelesai = $jadwalHariIni && ! $hariIni?->jam_datang && now()->gte($jadwalHariIni['pulang']);
 @endphp
 
 {{-- ================= HEADER MERAH ================= --}}
@@ -63,7 +65,9 @@
                 <div class="text-2xl font-extrabold tabular-nums lg:text-4xl {{ $hariIni?->jam_datang ? '' : 'text-gray-400' }}">
                     {{ $hariIni?->jam_datang ?? '--:--:--' }}
                 </div>
-                @if ($hariIni?->status_datang === 'Terlambat')
+                @if ($hariIni?->status_datang === \App\Models\Presensi::LEWAT_BATAS)
+                    <div class="mt-1 text-xs text-red-800 lg:text-sm">Lewat batas · terlambat {{ \App\Models\Presensi::formatDetik($hariIni->detik_terlambat) }}</div>
+                @elseif ($hariIni?->status_datang === 'Terlambat')
                     <div class="mt-1 text-xs text-orange-800 lg:text-sm">Terlambat {{ \App\Models\Presensi::formatDetik($hariIni->detik_terlambat) }}</div>
                 @elseif ($jadwalHariIni)
                     <div class="mt-1 text-xs text-gray-500 lg:text-sm">
@@ -89,12 +93,21 @@
             <div class="mt-4 rounded-2xl bg-emerald-50 py-3.5 text-center text-sm font-semibold text-emerald-800">
                 Presensi hari ini sudah lengkap
             </div>
-        @elseif ($lewatBatas)
+                @elseif ($kerjaSelesai)
             <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
-                <b>Batas presensi datang ({{ $batasDatang->format('H.i') }}) sudah lewat.</b>
+                <b>Jam kerja hari ini sudah berakhir ({{ $jadwalHariIni['pulang']->format('H.i') }}).</b>
                 Hari ini akan tercatat Alpa, kecuali ada izin, sakit, atau tugas khusus yang disetujui.
                 <a href="{{ route('pegawai.izin') }}" class="font-semibold underline">Ajukan sakit</a>
             </div>
+        @elseif ($lewatBatas)
+            <div class="mt-4 rounded-2xl bg-yellow-50 p-3 text-sm text-yellow-900">
+                Batas presensi datang ({{ $batasDatang->format('H.i') }}) sudah lewat. Presensi masih dapat dilakukan
+                sampai {{ $jadwalHariIni['pulang']->format('H.i') }} dan akan berlabel <b>Lewat Batas</b>.
+            </div>
+            <a href="{{ route('presensi.scan') }}"
+               class="mt-3 flex items-center justify-center gap-2 rounded-2xl bg-merah py-3.5 font-bold text-white hover:bg-merah-tua">
+                <i data-lucide="scan-face" class="h-5 w-5"></i> Presensi datang
+            </a>
         @elseif (! $kondisi)
             <a href="{{ route('presensi.scan') }}"
                class="mt-4 flex items-center justify-center gap-2 rounded-2xl bg-merah py-3.5 font-bold text-white hover:bg-merah-tua">

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Carbon\Carbon;
 
 class Presensi extends Model
 {
@@ -50,5 +51,38 @@ class Presensi extends Model
         }
 
         return sprintf('%02d:%02d:%02d', intdiv($detik, 3600), intdiv($detik % 3600, 60), $detik % 60);
+    }
+
+    public const LEWAT_BATAS = 'Lewat Batas';
+
+    /**
+     * Batas presensi datang hari itu (Pengaturan "batas_presensi_datang", maks. jadwal pulang).
+     * Lewat dari jam ini presensi tetap dicatat, tetapi berstatus "Lewat Batas".
+     */
+    public static function batasDatang(array $jadwal): Carbon
+    {
+        return Carbon::parse($jadwal['masuk']->toDateString().' '.Pengaturan::ambil('batas_presensi_datang', '12:00'))
+            ->min($jadwal['pulang']);
+    }
+
+    /**
+     * Status & lama terlambat untuk jam datang tertentu.
+     * Tepat Waktu : ≤ jam masuk + toleransi
+     * Terlambat   : > toleransi s.d. batas presensi datang
+     * Lewat Batas : > batas presensi datang (tetap Hadir)
+     * Lama terlambat selalu dihitung dari jam masuk.
+     */
+    public static function hitungDatang(Carbon $datang, array $jadwal): array
+    {
+        $terlambat = $datang->gt($jadwal['masuk']->copy()->addMinutes($jadwal['toleransi']));
+
+        return [
+            'status_datang'   => match (true) {
+                $datang->gt(self::batasDatang($jadwal)) => self::LEWAT_BATAS,
+                $terlambat                              => 'Terlambat',
+                default                                 => 'Tepat Waktu',
+            },
+            'detik_terlambat' => $terlambat ? $datang->timestamp - $jadwal['masuk']->timestamp : 0,
+        ];
     }
 }

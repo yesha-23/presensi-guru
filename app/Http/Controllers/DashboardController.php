@@ -46,8 +46,8 @@ class DashboardController extends Controller
 
         $filter = $request->query('status');
         $saring = [
-            'hadir'      => fn ($r) => in_array($r['status'], ['Tepat Waktu', 'Terlambat'], true),
-            'terlambat'  => fn ($r) => $r['status'] === 'Terlambat',
+            'hadir'      => fn ($r) => in_array($r['status'], ['Tepat Waktu', 'Terlambat', 'Lewat Batas'], true),
+            'terlambat'  => fn ($r) => in_array($r['status'], ['Terlambat', 'Lewat Batas'], true),
             'belum'      => fn ($r) => $r['status'] === 'Belum Presensi',
             'izin_sakit' => fn ($r) => in_array($r['status'], ['Izin', 'Sakit'], true),
             'tugas'      => fn ($r) => $r['status'] === 'Tugas Khusus',

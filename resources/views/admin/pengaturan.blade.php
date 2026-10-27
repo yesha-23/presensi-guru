@@ -68,6 +68,7 @@
             <h2 class="font-bold">Jam kerja</h2>
             <p class="text-xs text-gray-500">
                 Status Terlambat dicatat jika datang melewati jam masuk + toleransi, dan lamanya dihitung dari jam masuk.
+                Datang setelah batas presensi datang (tab Presensi &amp; wajah) dicatat sebagai Lewat Batas.
                 Jam Sabtu rapat diatur per tanggal di Kalender Akademik.
             </p>
         </div>
@@ -227,7 +228,7 @@
                     <label class="{{ $kelasLabel }}">Batas presensi datang
                         <input type="time" name="batas_presensi_datang"
                                value="{{ old('batas_presensi_datang', $nilai['batas_presensi_datang']) }}" class="{{ $kelasInput }}">
-                        <span class="{{ $kelasBantu }}">Lewat batas ini presensi datang ditolak (Alpa).</span>
+                        <span class="{{ $kelasBantu }}">Lewat jam ini presensi datang tetap dicatat dengan label <b>Lewat Batas</b>. Setelah jam pulang, presensi datang ditolak.</span>
                     </label>
                 </div>
             </div>

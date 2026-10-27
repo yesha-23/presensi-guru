@@ -97,13 +97,10 @@ class KoreksiPresensiService
             $j = $this->jadwal->jadwal($presensi->user, $presensi->tanggal->copy());
 
             $datang = Carbon::parse("{$tgl} {$baru['jam_datang']}");
-            $terlambat = $j && $datang->gt($j['masuk']->copy()->addMinutes($j['toleransi']));
 
-            $data += [
-                'jam_datang'      => $baru['jam_datang'],
-                'status_datang'   => $terlambat ? 'Terlambat' : 'Tepat Waktu',
-                'detik_terlambat' => $terlambat ? $datang->timestamp - $j['masuk']->timestamp : 0,
-            ];
+            // Aturan sama dengan presensi scan: Tepat Waktu / Terlambat / Lewat Batas
+            $data += ['jam_datang' => $baru['jam_datang']]
+                + ($j ? Presensi::hitungDatang($datang, $j) : ['status_datang' => 'Tepat Waktu', 'detik_terlambat' => 0]);
 
             if ($baru['jam_pulang']) {
                 $pulang = Carbon::parse("{$tgl} {$baru['jam_pulang']}");

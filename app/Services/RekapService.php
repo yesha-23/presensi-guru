@@ -39,6 +39,7 @@ class RekapService
 
     /**
      * Hitung rekap per pegawai. Data dihitung sampai kemarin (hari ini belum ditutup).
+     * Lewat Batas dihitung Hadir dan Terlambat; jumlahnya juga ditampilkan di Keterangan.
      *
      * @return array{baris: Collection, akhir: Carbon, efektifUnit: array<int,int>}
      */
@@ -66,6 +67,7 @@ class RekapService
             $izin = $p->where('status_harian', 'Izin')->count();
             $sakit = $p->where('status_harian', 'Sakit')->count();
             $alpa = max(0, $efektif - $hadir->count() - $tugas->count() - $izin - $sakit);
+            $lewatBatas = $hadir->where('status_datang', Presensi::LEWAT_BATAS)->count();
 
             // Rincian tugas khusus dari surat tugas yang menjadi referensinya
             $jumlahTugas = fn (callable $syarat) => $tugas
@@ -80,7 +82,9 @@ class RekapService
                 'efektif'         => $efektif,
                 'hadir'           => $hadir->count(),
                 'tepat'           => $hadir->where('status_datang', 'Tepat Waktu')->count(),
-                'terlambat'       => $hadir->where('status_datang', 'Terlambat')->count(),
+                // Lewat Batas tetap terhitung terlambat (dan Hadir)
+                'terlambat'       => $hadir->whereIn('status_datang', ['Terlambat', Presensi::LEWAT_BATAS])->count(),
+                'lewat_batas'     => $lewatBatas,
                 'detik_terlambat' => (int) $hadir->sum('detik_terlambat'),
                 'pulang_cepat'    => $hadir->where('pulang_cepat', true)->count(),
                 'tidak_pulang'    => $hadir->whereNull('jam_pulang')->count(),
@@ -94,8 +98,12 @@ class RekapService
                 'menit_lembur'    => (int) $lembur->get($u->id, collect())->sum('durasi_disetujui_menit'),
                 'persen'          => $persen,
                 'persen_alpa'     => $efektif ? round($alpa / $efektif * 100, 1) : 0,
-                'keterangan'      => collect(['Izin' => $izin, 'Sakit' => $sakit, 'Alpa' => $alpa])
-                    ->filter()->map(fn ($n, $k) => "{$k} {$n}")->join(', ') ?: '—',
+                'keterangan'      => collect([
+                    'Lewat batas' => $lewatBatas,
+                    'Izin'        => $izin,
+                    'Sakit'       => $sakit,
+                    'Alpa'        => $alpa,
+                ])->filter()->map(fn ($n, $k) => "{$k} {$n}")->join(', ') ?: '—',
             ];
         });
 

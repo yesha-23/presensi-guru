@@ -103,14 +103,14 @@
                         $statusPulang = DP::statusPulang($p, $tanggal);
                         $sedangMenunggu = $p && in_array($p->id, $menunggu, true);
                         $dataJs = [
-                            'user_id'       => $u->id,
-                            'nama'          => $u->nama_lengkap,
-                            'keterangan'    => $u->kategori.' '.$u->unit->label().' · '.$tanggal->translatedFormat('l, j F Y'),
+                            'user_id'         => $u->id,
+                            'nama'            => $u->nama_lengkap,
+                            'keterangan'      => $u->kategori.' '.$u->unit->label().' · '.$tanggal->translatedFormat('l, j F Y'),
                             'tercatat_datang' => $p?->jam_datang ? $p->jam_datang.' · '.$p->status_datang.($p->detik_terlambat ? ' '.Presensi::formatDetik($p->detik_terlambat) : '') : '—',
                             'tercatat_pulang' => $p?->jam_pulang ? $p->jam_pulang.' · '.$statusPulang : '—',
-                            'status_harian' => $p?->status_harian ?? ($p?->jam_datang ? 'Hadir' : 'Alpa'),
-                            'jam_datang'    => $p?->jam_datang ?? '',
-                            'jam_pulang'    => $p?->jam_pulang ?? '',
+                            'status_harian'   => $p?->status_harian ?? ($p?->jam_datang ? 'Hadir' : 'Alpa'),
+                            'jam_datang'      => $p?->jam_datang ?? '',
+                            'jam_pulang'      => $p?->jam_pulang ?? '',
                         ];
                     @endphp
                     <tr>
@@ -123,7 +123,11 @@
                         <td class="px-4 py-3">
                             @if ($statusDatang !== '—')
                                 <x-lencana :status="$statusDatang"
-                                           :teks="$statusDatang === 'Terlambat' ? 'Terlambat '.Presensi::formatDetik($p->detik_terlambat) : null" />
+                                           :teks="match ($statusDatang) {
+                                               'Terlambat'           => 'Terlambat '.Presensi::formatDetik($p->detik_terlambat),
+                                               Presensi::LEWAT_BATAS => 'Lewat batas '.Presensi::formatDetik($p->detik_terlambat),
+                                               default               => null,
+                                           }" />
                             @else
                                 <span class="text-gray-400">—</span>
                             @endif
@@ -251,7 +255,7 @@
             </label>
 
             <p class="rounded-xl bg-krem p-3 text-xs text-gray-600 sm:col-span-2">
-                Perubahan dicatat di log edit presensi. Status Tepat Waktu/Terlambat dan Pulang Cepat dihitung ulang dari jadwal hari itu.
+                Perubahan dicatat di log edit presensi. Status Tepat Waktu/Terlambat/Lewat Batas dan Pulang Cepat dihitung ulang dari jadwal hari itu.
                 Edit presensi milik administrator sendiri harus disetujui kepala sekolah.
             </p>
         </div>
