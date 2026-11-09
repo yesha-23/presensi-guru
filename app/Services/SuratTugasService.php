@@ -100,7 +100,7 @@ class SuratTugasService
         // Masih ada tahap berikutnya (kasus khusus) -> teruskan ke Ketua Yayasan
         if ($berikut = $this->tahapAktif($surat)) {
             $berikut->penyetuju?->notify(new Pemberitahuan(
-                "Surat tugas kasus khusus menunggu tanda tangan Anda: {$surat->perihal}",
+                "Surat tugas luar kota / kasus khusus menunggu tanda tangan Anda: {$surat->perihal}",
                 'Sudah ditandatangani '.$penyetuju->nama_lengkap,
                 route('persetujuan', ['tab' => 'surat', 'id' => $surat->id]),
                 'pengajuan'

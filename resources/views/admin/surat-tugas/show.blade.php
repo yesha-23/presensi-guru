@@ -37,7 +37,7 @@
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Pemberi tugas</dt><dd class="font-semibold">{{ $surat->pemberi_tugas }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Jenis</dt><dd class="font-semibold">{{ $surat->jenis_kegiatan === 'Dalam' ? 'Dalam sekolah (KDLM)' : 'Luar sekolah (KKLR)' }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Sifat</dt><dd class="font-semibold">{{ $surat->sifat }}</dd></div>
-                <div class="flex justify-between gap-3"><dt class="text-gray-500">Kasus khusus</dt><dd class="font-semibold">{{ $surat->kasus_khusus ? 'Ya' : 'Tidak' }}</dd></div>
+                <div class="flex justify-between gap-3"><dt class="text-gray-500">Luar kota / kasus khusus</dt><dd class="font-semibold">{{ $surat->kasus_khusus ? 'Ya' : 'Tidak' }}</dd></div>
                 <div class="flex justify-between gap-3"><dt class="text-gray-500">Pegawai</dt><dd class="font-semibold">{{ $surat->pegawai->count() }} orang</dd></div>
             </dl>
         </div>

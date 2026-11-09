@@ -11,6 +11,7 @@ class LemburService
     /**
      * Durasi lembur yang diakui (menit) = jam yang diajukan,
      * dibatasi jam presensi pulang aktual (SR-F22).
+     * Hari Tugas Khusus tidak punya presensi pulang: diakui sesuai jam yang diajukan.
      * null = presensi pulang belum ada, dihitung nanti.
      */
     public function hitungDurasi(Lembur $lembur): ?int
@@ -20,7 +21,7 @@ class LemburService
             ->first();
 
         if (! $presensi?->jam_pulang) {
-            return null;
+            return $this->hariTugas($lembur) ? self::menitDiajukan($lembur) : null;
         }
 
         $tgl = $lembur->tanggal->toDateString();
@@ -29,6 +30,19 @@ class LemburService
             ->min(Carbon::parse("{$tgl} {$presensi->jam_pulang}"));
 
         return max(0, intdiv($selesai->timestamp - $mulai->timestamp, 60));
+    }
+
+    /** Tanggal lembur termasuk hari Tugas Khusus pegawai (surat tugas disetujui)? */
+    private function hariTugas(Lembur $lembur): bool
+    {
+        $user = $lembur->user;
+        if (! $user) {
+            return false;
+        }
+
+        $kondisi = app(JadwalService::class)->kondisiKhusus($user, $lembur->tanggal->copy());
+
+        return ($kondisi['status'] ?? null) === 'Tugas Khusus';
     }
 
     /** Dipanggil saat presensi pulang tercatat atau dibatalkan. */

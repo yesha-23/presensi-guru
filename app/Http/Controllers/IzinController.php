@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\PengajuanIzin;
+use App\Models\Presensi;
 use App\Models\User;
 use App\Notifications\PengajuanBaru;
 use App\Notifications\Pemberitahuan;
@@ -217,7 +218,7 @@ class IzinController extends Controller
             'tanggal_selesai' => 'Tanggal selesai', 'alasan' => 'Alasan',
         ]);
 
-        // Batas H-1 / H+1 dan tidak bentrok dengan pengajuan lain
+        // Batas waktu izin (terencana H-1 / mendadak hari H), sakit H+1, dan tidak bentrok dengan pengajuan lain
         $validator->after(function ($v) use ($request, $user, $hariIni, $kecuali) {
             if ($v->errors()->hasAny(['jenis', 'tanggal_mulai', 'tanggal_selesai'])) {
                 return;
@@ -226,8 +227,14 @@ class IzinController extends Controller
             $mulai = Carbon::parse($request->input('tanggal_mulai'));
             $selesai = Carbon::parse($request->input('tanggal_selesai'));
 
-            if ($request->input('jenis') === 'Izin' && $mulai->lt($hariIni->copy()->addDay())) {
-                $v->errors()->add('tanggal_mulai', 'Izin wajib diajukan paling lambat H-1 (tanggal mulai paling cepat besok).');
+            if ($request->input('jenis') === 'Izin') {
+                // Izin terencana paling lambat H-1; izin mendadak (keadaan darurat) boleh untuk hari ini
+                if ($mulai->lt($hariIni)) {
+                    $v->errors()->add('tanggal_mulai', 'Izin tidak dapat diajukan untuk tanggal yang sudah lewat. Izin mendadak paling awal untuk hari ini.');
+                } elseif ($mulai->isSameDay($hariIni) && $this->sudahDatangHariIni($user)) {
+                    // Sudah presensi datang: yang dibutuhkan izin keluar (belum didukung), bukan izin sehari
+                    $v->errors()->add('tanggal_mulai', 'Anda sudah presensi datang hari ini, sehingga izin untuk hari ini tidak dapat diajukan. Hubungi kepala sekolah bila harus meninggalkan sekolah.');
+                }
             }
 
             if ($request->input('jenis') === 'Sakit') {
@@ -251,6 +258,14 @@ class IzinController extends Controller
         });
 
         return $validator;
+    }
+
+    private function sudahDatangHariIni(User $user): bool
+    {
+        return Presensi::where('user_id', $user->id)
+            ->whereDate('tanggal', today())
+            ->whereNotNull('jam_datang')
+            ->exists();
     }
 
     private function kabariPenyetuju(User $user, string $judul, string $keterangan, string $url): void

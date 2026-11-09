@@ -87,7 +87,7 @@
                             <div class="font-semibold">{{ $s->perihal }}</div>
                             <div class="text-xs text-gray-500">
                                 {{ $s->nomor_surat ?? ($s->status === 'Draf' ? 'Draf' : 'Nomor setelah disetujui') }}
-                                @if ($s->kasus_khusus) · <span class="font-semibold text-yellow-800">Kasus khusus</span> @endif
+                                @if ($s->kasus_khusus) · <span class="font-semibold text-yellow-800">Luar kota / kasus khusus</span> @endif
                             </div>
                         </td>
                         <td class="px-4 py-3">{{ $s->pemberi_tugas }}</td>
@@ -211,9 +211,12 @@
                 </div>
             </div>
 
-            <label class="flex items-center gap-3 rounded-xl bg-yellow-50 px-4 py-3 text-sm font-semibold text-yellow-900 sm:col-span-2">
-                <input type="checkbox" name="kasus_khusus" value="1" class="h-4 w-4 accent-merah" @checked(old('kasus_khusus'))>
-                Kasus khusus: perlu persetujuan dan tanda tangan Ketua Yayasan
+            <label class="flex items-start gap-3 rounded-xl bg-yellow-50 px-4 py-3 text-sm text-yellow-900 sm:col-span-2">
+                <input type="checkbox" name="kasus_khusus" value="1" class="mt-0.5 h-4 w-4 accent-merah" @checked(old('kasus_khusus'))>
+                <span>
+                    <span class="block font-semibold">Luar kota / kasus khusus: perlu persetujuan dan tanda tangan Ketua Yayasan</span>
+                    <span class="block text-xs">Centang untuk tugas ke luar kota atau kegiatan lain yang ditetapkan yayasan. Surat ditandatangani kepala sekolah lebih dulu, lalu Ketua Yayasan.</span>
+                </span>
             </label>
 
             <div class="sm:col-span-2">

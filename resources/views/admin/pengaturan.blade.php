@@ -16,6 +16,7 @@
         'jam'      => ['Jam kerja', 'clock'],
         'lokasi'   => ['Lokasi', 'map-pin'],
         'presensi' => ['Presensi & wajah', 'scan-face'],
+        'penyetuju' => ['Penyetuju', 'user-check'],
         'kop'      => ['Kop surat', 'file-text'],
     ];
 
@@ -26,6 +27,7 @@
             str_starts_with($kunci, 'jam.') => 'jam',
             in_array($kunci, ['nama', 'latitude', 'longitude', 'radius_meter'], true) => 'lokasi',
             in_array($kunci, ['alamat_yayasan', 'kota_surat', 'telepon_surat', 'web_surat'], true) => 'kop',
+            str_starts_with($kunci, 'penyetuju_ks') => 'penyetuju',
             default => 'presensi',
         };
         break;
@@ -379,7 +381,49 @@
     </form>
 </div>
 
-{{-- ================= 4. KOP SURAT ================= --}}
+{{-- ================= 4. PENYETUJU PENGAJUAN KEPALA SEKOLAH ================= --}}
+@php
+    // null = belum pernah diatur: semua administrator masih menjadi penyetuju (perilaku lama)
+    $terpilih = array_map('intval', (array) old('penyetuju_ks', $idPenyetujuKs ?? $daftarAdmin->pluck('id')->all()));
+@endphp
+<div data-panel="penyetuju" class="mt-5 {{ $tabAwal === 'penyetuju' ? '' : 'hidden' }}">
+    <form method="POST" action="{{ route('admin.pengaturan.penyetuju') }}" class="{{ $kelasKartu }}">
+        @csrf @method('PUT')
+        <div class="{{ $kelasKepala }}">
+            <h2 class="font-bold">Penyetuju pengajuan kepala sekolah</h2>
+            <p class="text-xs text-gray-500">
+                Izin, sakit, dan lembur milik kepala sekolah disetujui <b>Ketua Yayasan</b> atau salah satu administrator yang dicentang di bawah
+                (misalnya Kabag Adm. Umum). Administrator yang tidak dicentang tetap mengelola data, tetapi tidak menyetujui pengajuan kepala sekolah.
+                Administrator pertama yang dicentang juga dipakai sebagai penanda tangan Kabag Adm. Umum pada rekap.
+            </p>
+            @if ($idPenyetujuKs === null)
+                <p class="mt-2 rounded-lg bg-yellow-50 px-3 py-2 text-xs text-yellow-900">
+                    Belum pernah diatur: saat ini semua administrator dapat menyetujui. Simpan sekali untuk menetapkannya.
+                </p>
+            @endif
+        </div>
+
+        <div class="grid gap-2 p-5 sm:grid-cols-2">
+            @forelse ($daftarAdmin as $adm)
+                <label class="flex cursor-pointer items-start gap-3 rounded-xl border border-garis p-3 has-[:checked]:border-merah has-[:checked]:bg-merah-muda">
+                    <input type="checkbox" name="penyetuju_ks[]" value="{{ $adm->id }}" class="mt-0.5 h-4 w-4 accent-merah"
+                           @checked(in_array($adm->id, $terpilih, true))>
+                    <span>
+                        <span class="block text-sm font-semibold">{{ $adm->nama_lengkap }}</span>
+                        <span class="block text-xs text-gray-500">{{ $adm->jabatan ?? 'Administrator' }} · {{ $adm->unit?->label() }}</span>
+                    </span>
+                </label>
+            @empty
+                <p class="text-sm text-gray-500">Belum ada pegawai aktif dengan peran Administrator.</p>
+            @endforelse
+            @error('penyetuju_ks.*') <p class="text-xs text-merah sm:col-span-2">{{ $message }}</p> @enderror
+        </div>
+
+        <div class="{{ $kelasKaki }}"><button class="{{ $tombol }}">Simpan penyetuju</button></div>
+    </form>
+</div>
+
+{{-- ================= 5. KOP SURAT ================= --}}
 <div data-panel="kop" class="mt-5 {{ $tabAwal === 'kop' ? '' : 'hidden' }}">
     <form method="POST" action="{{ route('admin.pengaturan.kop') }}" class="{{ $kelasKartu }}">
         @csrf @method('PUT')

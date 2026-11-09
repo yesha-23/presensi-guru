@@ -32,4 +32,24 @@ class PengajuanIzin extends Model
     {
         return $this->belongsTo(User::class, 'disetujui_oleh');
     }
+
+    /**
+     * Penanda waktu pengajuan untuk penyetuju:
+     * " · Mendadak" = izin untuk hari yang sama dengan tanggal diajukan,
+     * " · Susulan"  = sakit untuk tanggal sebelum tanggal diajukan.
+     */
+    public function labelWaktu(): string
+    {
+        if (! $this->created_at || ! $this->tanggal_mulai) {
+            return '';
+        }
+
+        $hariAju = $this->created_at->copy()->startOfDay();
+
+        return match (true) {
+            $this->jenis === 'Izin' && $this->tanggal_mulai->lte($hariAju) => ' · Mendadak',
+            $this->jenis === 'Sakit' && $this->tanggal_mulai->lt($hariAju) => ' · Susulan',
+            default                                                        => '',
+        };
+    }
 }

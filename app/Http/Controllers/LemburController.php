@@ -210,14 +210,20 @@ class LemburController extends Controller
                 return;
             }
 
-            // Hari libur, izin/sakit, atau tugas khusus: tidak ada lembur
-            if ($khusus = $this->jadwal->kondisiKhusus($user, $tanggal)) {
+            // Hari libur atau izin/sakit: tidak ada lembur.
+            // Hari Tugas Khusus boleh (mis. retret/pertandingan sampai malam: jam setelah jadwal pulang = lembur).
+            $khusus = $this->jadwal->kondisiKhusus($user, $tanggal);
+            if ($khusus && $khusus['status'] !== 'Tugas Khusus') {
                 $v->errors()->add('tanggal', 'Tanggal tersebut tidak dapat diajukan lembur. '.$khusus['keterangan']);
                 return;
             }
 
-            // Jam mulai tidak boleh lebih awal dari jadwal pulang (termasuk Hari Kerja Tambahan)
-            $jadwalPulang = $this->jadwal->jadwal($user, $tanggal)['pulang']->format('H:i');
+            // Jam mulai tidak boleh lebih awal dari jadwal pulang (termasuk Hari Kerja Tambahan).
+            // Tugas di hari nonkerja: acuan jam pulang normal pegawai.
+            $jadwalHari = $this->jadwal->jadwal($user, $tanggal);
+            $jadwalPulang = $jadwalHari
+                ? $jadwalHari['pulang']->format('H:i')
+                : substr($user->jamKerja()?->jam_pulang ?? '15:00:00', 0, 5);
             if ($request->input('jam_mulai') < $jadwalPulang) {
                 $v->errors()->add('jam_mulai', 'Jam mulai lembur tidak boleh lebih awal dari jadwal pulang ('.str_replace(':', '.', $jadwalPulang).').');
             }

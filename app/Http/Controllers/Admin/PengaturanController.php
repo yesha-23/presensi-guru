@@ -10,6 +10,7 @@ use App\Models\Pengaturan;
 use App\Models\Presensi;
 use App\Models\Role;
 use App\Models\User;
+use App\Services\PersetujuanService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -28,6 +29,9 @@ class PengaturanController extends Controller
             'pilihanPegawai' => $this->pegawaiPresensi()->with('unit')->orderBy('nama_lengkap')
                 ->get(['id', 'nama_lengkap', 'unit_id', 'kategori']),
             'lokasi'   => Lokasi::first(),
+            // Administrator yang dapat ditunjuk menyetujui pengajuan kepala sekolah
+            'daftarAdmin'   => $this->administrator()->with('unit')->orderBy('nama_lengkap')->get(),
+            'idPenyetujuKs' => PersetujuanService::idPenyetujuKs(),
             'nilai'    => [
                 'ambang_wajah'          => $nilai('ambang_wajah', '0.5'),
                 'akurasi_gps_maks'      => $nilai('akurasi_gps_maks', '150'),
@@ -164,6 +168,27 @@ class PengaturanController extends Controller
         return back()->with('sukses', 'Pengaturan presensi disimpan.');
     }
 
+    /**
+     * Administrator yang ditunjuk menyetujui izin/sakit/lembur milik kepala sekolah
+     * (selain Ketua Yayasan), misalnya Kabag Adm. Umum. Admin lain (mis. admin kedua) tidak ikut menyetujui.
+     */
+    public function penyetuju(Request $request)
+    {
+        $data = $request->validate([
+            'penyetuju_ks'   => ['nullable', 'array'],
+            'penyetuju_ks.*' => ['integer', Rule::in($this->administrator()->pluck('id'))],
+        ], ['penyetuju_ks.*.in' => 'Penyetuju harus pegawai aktif dengan peran Administrator.']);
+
+        $id = collect($data['penyetuju_ks'] ?? [])->map(fn ($i) => (int) $i)->unique()->sort()->values();
+
+        Pengaturan::updateOrCreate(['kunci' => 'penyetuju_pengajuan_ks'], ['nilai' => $id->implode(',')]);
+
+        $nama = User::whereIn('id', $id)->orderBy('nama_lengkap')->pluck('nama_lengkap');
+
+        return back()->with('sukses', 'Penyetuju pengajuan kepala sekolah disimpan: Ketua Yayasan'
+            .($nama->isNotEmpty() ? ', '.$nama->join(', ') : ' saja').'.');
+    }
+
     /** Data kop surat tugas. */
     public function kop(Request $request)
     {
@@ -179,6 +204,13 @@ class PengaturanController extends Controller
         }
 
         return back()->with('sukses', 'Data kop surat disimpan. Berlaku untuk surat tugas yang disetujui berikutnya.');
+    }
+
+    /** Pegawai aktif dengan peran Administrator. */
+    private function administrator()
+    {
+        return User::where('status', 'Aktif')
+            ->whereHas('roles', fn ($q) => $q->where('nama', Role::ADMIN));
     }
 
     /** Pegawai aktif yang wajib presensi (punya kategori & peran Pegawai). */

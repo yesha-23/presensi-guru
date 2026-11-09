@@ -126,7 +126,7 @@ class DashboardController extends Controller
         ]));
 
         SuratTugas::with('persetujuan')->where('status', 'Menunggu')->get()->each(fn ($s) => $item->push([
-            'jenis' => 'SURAT TUGAS'.($s->kasus_khusus ? ' · KASUS KHUSUS' : ''), 'warna' => 'text-emerald-800',
+            'jenis' => 'SURAT TUGAS'.($s->kasus_khusus ? ' · LUAR KOTA / KASUS KHUSUS' : ''), 'warna' => 'text-emerald-800',
             'judul' => $s->perihal,
             'ket'   => $s->labelStatus(),
             'waktu' => $s->updated_at,
