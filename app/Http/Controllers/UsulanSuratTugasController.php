@@ -26,9 +26,21 @@ class UsulanSuratTugasController extends Controller
     {
     }
 
-    public function create(Request $request)
+    /** Daftar usulan milik pegawai (halaman menu "Usulan Surat"). */
+    public function index(Request $request)
     {
-        return view('pegawai.usulan-surat', $this->dataHalaman($request) + ['edit' => null]);
+        return view('pegawai.usulan-surat.index', [
+            'judul'  => 'Usulan Surat Tugas',
+            'usulan' => SuratTugas::with('persetujuan')
+                ->where('diajukan_oleh', $request->user()->id)
+                ->latest()->paginate(10),
+            'sorot'  => session('sorot'),
+        ]);
+    }
+
+    public function create()
+    {
+        return view('pegawai.usulan-surat.form', ['judul' => 'Usulkan Surat Tugas', 'edit' => null]);
     }
 
     public function store(Request $request)
@@ -42,14 +54,15 @@ class UsulanSuratTugasController extends Controller
         );
 
         return redirect()->route('pegawai.usulan-surat')
-            ->with('sukses', "Usulan surat tugas \"{$surat->perihal}\" dikirim ke administrator.");
+            ->with('sukses', "Usulan surat tugas \"{$surat->perihal}\" dikirim ke administrator.")
+            ->with('sorot', $surat->id);
     }
 
     public function edit(Request $request, SuratTugas $surat)
     {
         $this->pastikanMilikDanDiajukan($request, $surat);
 
-        return view('pegawai.usulan-surat', $this->dataHalaman($request) + ['edit' => $surat]);
+        return view('pegawai.usulan-surat.form', ['judul' => 'Ubah Usulan Surat Tugas', 'edit' => $surat]);
     }
 
     public function update(Request $request, SuratTugas $surat)
@@ -81,7 +94,9 @@ class UsulanSuratTugasController extends Controller
 
         $this->kabariAdmin("Usulan surat tugas diperbarui: {$surat->perihal}", $request->user()->nama_lengkap, $surat);
 
-        return redirect()->route('pegawai.usulan-surat')->with('sukses', 'Perubahan usulan surat tugas disimpan.');
+        return redirect()->route('pegawai.usulan-surat')
+            ->with('sukses', 'Perubahan usulan surat tugas disimpan.')
+            ->with('sorot', $surat->id);
     }
 
     public function batal(Request $request, SuratTugas $surat)
@@ -118,16 +133,6 @@ class UsulanSuratTugasController extends Controller
     }
 
     // ================= Helper =================
-
-    private function dataHalaman(Request $request): array
-    {
-        return [
-            'judul'  => 'Usulan Surat Tugas',
-            'usulan' => SuratTugas::with('persetujuan')
-                ->where('diajukan_oleh', $request->user()->id)
-                ->latest()->limit(10)->get(),
-        ];
-    }
 
     private function milikDanDiajukan(Request $request, SuratTugas $surat): bool
     {

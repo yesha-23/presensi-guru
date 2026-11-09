@@ -70,10 +70,17 @@ class PersetujuanController extends Controller
         $tab = array_key_exists($request->query('tab'), $tabs) ? $request->query('tab') : 'izin';
         $id = $request->integer('id');
 
-        $dipilih = $tab === 'izin' ? ($menunggu->firstWhere('id', $id) ?? $menunggu->first()) : null;
-        $lemburDipilih = $tab === 'lembur' ? ($menungguLembur->firstWhere('id', $id) ?? $menungguLembur->first()) : null;
-        $suratDipilih = $tab === 'surat' ? ($menungguSurat->firstWhere('id', $id) ?? $menungguSurat->first()) : null;
-        $koreksiDipilih = $tab === 'koreksi' ? ($menungguKoreksi->firstWhere('id', $id) ?? $menungguKoreksi->first()) : null;
+        // Tanpa ?id= : tampilkan daftar. Dengan ?id= : tampilkan detail pengajuan itu saja.
+        $dipilih = $tab === 'izin' && $id ? $menunggu->firstWhere('id', $id) : null;
+        $lemburDipilih = $tab === 'lembur' && $id ? $menungguLembur->firstWhere('id', $id) : null;
+        $suratDipilih = $tab === 'surat' && $id ? $menungguSurat->firstWhere('id', $id) : null;
+        $koreksiDipilih = $tab === 'koreksi' && $id ? $menungguKoreksi->firstWhere('id', $id) : null;
+
+        // Tautan lama / notifikasi ke pengajuan yang sudah diproses: kembali ke daftar dengan info
+        if ($id && ! ($dipilih ?? $lemburDipilih ?? $suratDipilih ?? $koreksiDipilih)) {
+            return redirect()->route('persetujuan', ['tab' => $tab])
+                ->with('info', 'Pengajuan tersebut sudah diproses atau bukan wewenang Anda.');
+        }
 
         return view('persetujuan.index', [
             'judul'          => 'Persetujuan',

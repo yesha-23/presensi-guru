@@ -5,7 +5,7 @@
     $kelasInput = 'mt-1 w-full rounded-xl border border-garis bg-white px-3 py-3 text-sm font-normal outline-none focus:border-navy';
     $kelasLabel = 'block text-sm font-semibold';
     $hariIni = today()->toDateString();
-    $kembali = route('pegawai.riwayat', ['tab' => 'surat-tugas']);
+    $kembali = route('pegawai.usulan-surat');
 
     // Nilai awal form (tambah / edit / setelah galat validasi)
     $nilai = fn (string $kolom, $bawaan = null) => old($kolom, $edit ? $edit->{$kolom} : $bawaan);
@@ -13,17 +13,6 @@
     $tglSelesai = old('tanggal_selesai', $edit?->tanggal_selesai?->toDateString() ?? $hariIni);
     $jamMulai = old('jam_mulai', $edit?->jam_mulai ? substr($edit->jam_mulai, 0, 5) : '');
     $jamSelesai = old('jam_selesai', $edit?->jam_selesai ? substr($edit->jam_selesai, 0, 5) : '');
-
-    // Penjelasan status untuk pengusul
-    $penjelasan = [
-        'Diajukan'     => 'Menunggu diproses administrator. Masih dapat diubah atau dibatalkan.',
-        'Diproses'     => 'Sedang diperiksa dan dilengkapi administrator.',
-        'Draf'         => 'Disimpan administrator, belum dikirim ke kepala sekolah.',
-        'Menunggu'     => 'Menunggu tanda tangan kepala sekolah.',
-        'Perlu Revisi' => 'Sedang diperbaiki administrator sesuai catatan kepala sekolah.',
-        'Disetujui'    => 'Surat tugas terbit. Lihat di Riwayat › Surat Tugas.',
-        'Ditolak'      => 'Usulan tidak diterbitkan.',
-    ];
 @endphp
 
 <div class="flex items-center gap-3">
@@ -36,7 +25,7 @@
     </div>
 </div>
 
-<div class="mt-6 grid gap-6 lg:grid-cols-[1fr_24rem] lg:items-start">
+<div class="mt-6 max-w-3xl">
     {{-- ================= FORM (tambah & edit) ================= --}}
     <form method="POST" enctype="multipart/form-data"
           action="{{ $edit ? route('pegawai.usulan-surat.update', $edit) : route('pegawai.usulan-surat.store') }}"
@@ -146,7 +135,7 @@
 
         @if ($edit)
             <div class="grid grid-cols-2 gap-3">
-                <a href="{{ route('pegawai.usulan-surat') }}" class="rounded-2xl border border-garis bg-white py-4 text-center font-bold hover:bg-gray-50">Batal edit</a>
+                <a href="{{ $kembali }}" class="rounded-2xl border border-garis bg-white py-4 text-center font-bold hover:bg-gray-50">Batal edit</a>
                 <button type="submit" class="rounded-2xl bg-merah py-4 font-bold text-white hover:bg-merah-tua">Simpan perubahan</button>
             </div>
         @else
@@ -154,55 +143,5 @@
         @endif
     </form>
 
-    {{-- ================= USULAN SAYA ================= --}}
-    <div class="rounded-3xl border border-garis bg-white p-5">
-        <h2 class="font-bold">Usulan saya</h2>
-
-        <div class="mt-3 divide-y divide-garis">
-            @forelse ($usulan as $u)
-                @php
-                    $catatan = $u->status === 'Ditolak'
-                        ? ($u->catatan_usulan ?? $u->persetujuan->firstWhere('status', 'Ditolak')?->catatan)
-                        : null;
-                    $pesanBatal = 'Batalkan usulan "'.$u->perihal.'"? Lampiran ikut dihapus.';
-                @endphp
-                <div class="py-3">
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 leading-tight">
-                            <div class="font-semibold">{{ $u->perihal }}</div>
-                            <div class="text-xs text-gray-500">{{ $u->rentangTanggal() }} · diajukan {{ $u->created_at->translatedFormat('j M') }}</div>
-                        </div>
-                        <x-lencana :status="$u->labelStatus()" />
-                    </div>
-                    <p class="mt-1 text-xs text-gray-600">{{ $penjelasan[$u->status] ?? '' }}</p>
-                    @if ($catatan)
-                        <p class="mt-1 rounded-lg bg-red-50 px-2 py-1 text-xs text-red-800">Alasan: {{ $catatan }}</p>
-                    @endif
-
-                    @if ($u->status === 'Diajukan')
-                        <div class="mt-2 flex gap-2">
-                            <a href="{{ route('pegawai.usulan-surat.edit', $u) }}"
-                               class="inline-flex items-center gap-1 rounded-lg border border-garis px-3 py-1.5 text-xs font-semibold hover:bg-gray-50">
-                                <i data-lucide="pencil" class="h-3.5 w-3.5"></i> Ubah
-                            </a>
-                            <form method="POST" action="{{ route('pegawai.usulan-surat.batal', $u) }}"
-                                  data-konfirmasi="{{ $pesanBatal }}" onsubmit="return confirm(this.dataset.konfirmasi)">
-                                @csrf @method('DELETE')
-                                <button class="inline-flex items-center gap-1 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-merah hover:bg-merah-muda">
-                                    <i data-lucide="x" class="h-3.5 w-3.5"></i> Batalkan
-                                </button>
-                            </form>
-                        </div>
-                    @elseif ($u->status === 'Disetujui')
-                        <a href="{{ route('pegawai.riwayat', ['tab' => 'surat-tugas']) }}" class="mt-2 inline-block text-xs font-semibold text-navy underline">
-                            Lihat surat tugas
-                        </a>
-                    @endif
-                </div>
-            @empty
-                <p class="py-3 text-sm text-gray-500">Belum ada usulan surat tugas.</p>
-            @endforelse
-        </div>
-    </div>
 </div>
 @endsection
