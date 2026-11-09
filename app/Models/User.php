@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -108,10 +109,28 @@ class User extends Authenticatable
         return $this->faceDescriptors()->count() >= 3;
     }
 
+    public function jamKerjaKhusus(): HasOne
+    {
+        return $this->hasOne(JamKerjaKhusus::class);
+    }
+
+    /**
+     * Jam kerja pegawai: jam unit & kategori, atau jam kerja khusus bila ada.
+     * Toleransi selalu mengikuti unit & kategori.
+     * Hasilnya hanya untuk dibaca (salinan, bukan baris tabel jam_kerja), jadi jangan di-save().
+     */
     public function jamKerja(): ?JamKerja
     {
-        return JamKerja::where('unit_id', $this->unit_id)
+        $jam = JamKerja::where('unit_id', $this->unit_id)
             ->where('kategori', $this->kategori)
             ->first();
+
+        if ($jam && $this->jamKerjaKhusus) {
+            $jam = $jam->replicate();
+            $jam->jam_masuk = $this->jamKerjaKhusus->jam_masuk;
+            $jam->jam_pulang = $this->jamKerjaKhusus->jam_pulang;
+        }
+
+        return $jam;
     }
 }

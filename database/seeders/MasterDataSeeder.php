@@ -36,7 +36,8 @@ class MasterDataSeeder extends Seeder
             foreach ($daftarKategori as $kategori) {
                 JamKerja::updateOrCreate(
                     ['unit_id' => $unit->id, 'kategori' => $kategori],
-                    ['jam_masuk' => '07:00:00', 'jam_pulang' => $jamPulang, 'toleransi_menit' => 15]
+                    // Toleransi 0: lewat dari 07.00 terhitung terlambat (konfirmasi Kepala SD, 9 Nov 2026)
+                    ['jam_masuk' => '07:00:00', 'jam_pulang' => $jamPulang, 'toleransi_menit' => 0]
                 );
             }
         }
@@ -56,7 +57,8 @@ class MasterDataSeeder extends Seeder
             'hari_kerja'           => '1,2,3,4,5', // Senin–Jumat
             'sesi_manual_menit'    => '30',
             'sesi_otomatis_menit'  => '5',
-            'batas_presensi_datang' => '12:00', // lewat jam ini presensi datang berlabel "Lewat Batas" (tetap Hadir)
+            'batas_presensi_datang' => '12:00', // lewat jam ini presensi datang dicatat "Lewat Batas" atau ditolak
+            'mode_lewat_batas'     => 'catat', // catat = berlabel Lewat Batas (tetap Hadir); tolak = presensi ditolak
             'alamat_yayasan'       => 'Villa Seturan Indah, Gg. Apokat Jl. Seturan Raya No.10 Blk D, RT.12/RW.01, Kledokan, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281',
             'kota_surat'           => 'Sleman',
             'telepon_surat'        => 'Telp. (0274) 487069, WA Official: 0812 1204 0005',

@@ -30,6 +30,10 @@
         };
         break;
     }
+    // Galat form jam kerja khusus (error bag terpisah) -> buka tab Jam kerja
+    if ($errors->jamKhusus->any()) {
+        $tabGalat = 'jam';
+    }
     $tabAwal = $tabGalat ?? 'jam';
 
     $tabAktif = 'border-gray-900 bg-gray-900 text-white';
@@ -67,9 +71,9 @@
         <div class="{{ $kelasKepala }}">
             <h2 class="font-bold">Jam kerja</h2>
             <p class="text-xs text-gray-500">
-                Status Terlambat dicatat jika datang melewati jam masuk + toleransi, dan lamanya dihitung dari jam masuk.
-                Datang setelah batas presensi datang (tab Presensi &amp; wajah) dicatat sebagai Lewat Batas.
-                Jam Sabtu rapat diatur per tanggal di Kalender Akademik.
+                Status Terlambat dicatat jika menit datang melewati jam masuk + toleransi (toleransi 0: 07.00 lewat beberapa detik masih tepat waktu, 07.01 terlambat).
+                Lama terlambat dihitung dari jam masuk. Datang setelah batas presensi datang diatur di tab Presensi &amp; wajah.
+                Jam Sabtu rapat diatur per tanggal di Kalender Akademik; pegawai dengan jam berbeda diatur di kartu Jam kerja khusus di bawah.
             </p>
         </div>
 
@@ -128,6 +132,109 @@
 
         <div class="{{ $kelasKaki }}"><button class="{{ $tombol }}">Simpan jam kerja</button></div>
     </form>
+
+    {{-- ---------- Jam kerja khusus per pegawai ---------- --}}
+    @php $galatKhusus = $errors->jamKhusus; @endphp
+    <div id="jam-khusus" class="mt-5 {{ $kelasKartu }}">
+        <div class="{{ $kelasKepala }}">
+            <h2 class="font-bold">Jam kerja khusus pegawai</h2>
+            <p class="text-xs text-gray-500">
+                Untuk pegawai yang jam masuk/pulangnya berbeda dari unit &amp; kategorinya (misalnya masuk 08.00 dan pulang lebih sore).
+                Toleransi tetap mengikuti unit &amp; kategori. Pada Hari Kerja Tambahan yang punya jam sendiri, jam kalender yang dipakai.
+            </p>
+        </div>
+
+        {{-- Daftar --}}
+        <div class="overflow-x-auto">
+            <table class="w-full min-w-[40rem] text-sm">
+                <thead class="bg-krem text-left text-gray-600">
+                    <tr>
+                        <th class="px-5 py-2.5 font-semibold">Pegawai</th>
+                        <th class="px-5 py-2.5 font-semibold">Jam kerja</th>
+                        <th class="px-5 py-2.5 font-semibold">Keterangan</th>
+                        <th class="px-5 py-2.5 text-right font-semibold">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-garis">
+                    @forelse ($jamKhusus as $jk)
+                        <tr>
+                            <td class="px-5 py-3">
+                                <div class="font-semibold">{{ $jk->user?->nama_lengkap ?? '(pegawai dihapus)' }}</div>
+                                <div class="text-xs text-gray-500">{{ $jk->user?->kategori }} · {{ $jk->user?->unit?->label() }}</div>
+                            </td>
+                            <td class="px-5 py-3 tabular-nums">{{ substr($jk->jam_masuk, 0, 5) }} – {{ substr($jk->jam_pulang, 0, 5) }}</td>
+                            <td class="px-5 py-3 text-gray-600">{{ $jk->keterangan ?? '—' }}</td>
+                            <td class="px-5 py-3">
+                                @php
+                                    $dataUbah = [
+                                        'user_id'    => $jk->user_id,
+                                        'jam_masuk'  => substr($jk->jam_masuk, 0, 5),
+                                        'jam_pulang' => substr($jk->jam_pulang, 0, 5),
+                                        'keterangan' => $jk->keterangan,
+                                    ];
+                                    $pesanHapus = 'Hapus jam kerja khusus '.($jk->user?->nama_lengkap ?? 'pegawai ini')
+                                        .'? Pegawai kembali memakai jam unit dan kategorinya.';
+                                @endphp
+                                <div class="flex justify-end gap-2">
+                                    <button type="button" title="Ubah"
+                                            data-ubah-khusus="{{ json_encode($dataUbah) }}"
+                                            class="rounded-lg border border-garis p-2 hover:bg-gray-50">
+                                        <i data-lucide="pencil" class="h-4 w-4"></i>
+                                    </button>
+                                    <form method="POST" action="{{ route('admin.pengaturan.jam-khusus.hapus', $jk) }}"
+                                          data-konfirmasi="{{ $pesanHapus }}"
+                                          onsubmit="return confirm(this.dataset.konfirmasi)">
+                                        @csrf @method('DELETE')
+                                        <button title="Hapus" class="rounded-lg border border-red-200 p-2 text-merah hover:bg-merah-muda">
+                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="4" class="px-5 py-6 text-center text-gray-500">Belum ada pegawai dengan jam kerja khusus.</td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+
+        {{-- Form tambah / ubah --}}
+        <form method="POST" action="{{ route('admin.pengaturan.jam-khusus') }}" id="form-jam-khusus" class="border-t border-garis">
+            @csrf
+            <div class="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_8.5rem_8.5rem_minmax(0,1.4fr)]">
+                <label class="{{ $kelasLabel }}">Pegawai
+                    <select name="user_id" class="{{ $kelasInput }}">
+                        <option value="">Pilih pegawai</option>
+                        @foreach ($pilihanPegawai as $pg)
+                            <option value="{{ $pg->id }}" @selected(old('user_id') == $pg->id)>
+                                {{ $pg->nama_lengkap }} · {{ $pg->kategori }} {{ $pg->unit?->label() }}
+                            </option>
+                        @endforeach
+                    </select>
+                    @if ($galatKhusus->has('user_id')) <span class="mt-1 block text-xs font-normal text-merah">{{ $galatKhusus->first('user_id') }}</span> @endif
+                </label>
+                <label class="{{ $kelasLabel }}">Jam masuk
+                    <input type="time" name="jam_masuk" value="{{ old('jam_masuk', '08:00') }}" class="{{ $kelasInput }} tabular-nums">
+                    @if ($galatKhusus->has('jam_masuk')) <span class="mt-1 block text-xs font-normal text-merah">{{ $galatKhusus->first('jam_masuk') }}</span> @endif
+                </label>
+                <label class="{{ $kelasLabel }}">Jam pulang
+                    <input type="time" name="jam_pulang" value="{{ old('jam_pulang') }}" class="{{ $kelasInput }} tabular-nums">
+                    @if ($galatKhusus->has('jam_pulang')) <span class="mt-1 block text-xs font-normal text-merah">{{ $galatKhusus->first('jam_pulang') }}</span> @endif
+                </label>
+                <label class="{{ $kelasLabel }}">Keterangan
+                    <input name="keterangan" value="{{ old('keterangan') }}" maxlength="150" placeholder="Contoh: jaga penjemputan siswa" class="{{ $kelasInput }}">
+                    @if ($galatKhusus->has('keterangan')) <span class="mt-1 block text-xs font-normal text-merah">{{ $galatKhusus->first('keterangan') }}</span> @endif
+                </label>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-t border-garis bg-krem/40 px-5 py-4">
+                <span class="text-xs text-gray-500">Memilih pegawai yang sudah ada di daftar akan memperbarui jamnya.</span>
+                <button class="{{ $tombol }}">Simpan jam khusus</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 {{-- ================= 2. LOKASI ================= --}}
@@ -228,8 +335,27 @@
                     <label class="{{ $kelasLabel }}">Batas presensi datang
                         <input type="time" name="batas_presensi_datang"
                                value="{{ old('batas_presensi_datang', $nilai['batas_presensi_datang']) }}" class="{{ $kelasInput }}">
-                        <span class="{{ $kelasBantu }}">Lewat jam ini presensi datang tetap dicatat dengan label <b>Lewat Batas</b>. Setelah jam pulang, presensi datang ditolak.</span>
+                        <span class="{{ $kelasBantu }}">Setelah jam pulang, presensi datang selalu ditolak.</span>
                     </label>
+                    <div class="sm:col-span-2">
+                        <span class="{{ $kelasLabel }}">Presensi datang setelah batas</span>
+                        <div class="mt-2 grid gap-2 sm:grid-cols-2">
+                            @foreach ([
+                                \App\Models\Presensi::MODE_CATAT => ['Catat sebagai Lewat Batas', 'Kehadiran tetap tercatat (dihitung masuk dan terlambat) dengan label Lewat Batas.'],
+                                \App\Models\Presensi::MODE_TOLAK => ['Tolak presensi', 'Presensi datang ditutup; tanpa izin, sakit, atau tugas, hari itu menjadi Alpa.'],
+                            ] as $mode => [$judulMode, $teksMode])
+                                <label class="flex cursor-pointer gap-3 rounded-xl border border-garis p-3 has-[:checked]:border-merah has-[:checked]:bg-merah-muda">
+                                    <input type="radio" name="mode_lewat_batas" value="{{ $mode }}" class="mt-0.5 h-4 w-4 accent-merah"
+                                           @checked(old('mode_lewat_batas', $nilai['mode_lewat_batas']) === $mode)>
+                                    <span>
+                                        <span class="block text-sm font-semibold">{{ $judulMode }}</span>
+                                        <span class="block text-xs font-normal text-gray-500">{{ $teksMode }}</span>
+                                    </span>
+                                </label>
+                            @endforeach
+                        </div>
+                        @error('mode_lewat_batas') <span class="mt-1 block text-xs text-merah">{{ $message }}</span> @enderror
+                    </div>
                 </div>
             </div>
 
@@ -313,6 +439,17 @@
         try { tabAwal = sessionStorage.getItem('tab-pengaturan'); } catch { tabAwal = null; }
     }
     bukaTab(daftarTab.includes(tabAwal) ? tabAwal : 'jam');
+
+    // ================= Jam kerja khusus: tombol Ubah mengisi form =================
+    const formKhusus = document.getElementById('form-jam-khusus');
+    document.querySelectorAll('[data-ubah-khusus]').forEach((tombol) =>
+        tombol.addEventListener('click', () => {
+            const d = JSON.parse(tombol.dataset.ubahKhusus);
+            ['user_id', 'jam_masuk', 'jam_pulang', 'keterangan'].forEach((k) => (formKhusus.elements[k].value = d[k] ?? ''));
+            formKhusus.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            formKhusus.elements['jam_masuk'].focus();
+        })
+    );
 
     // ================= Isi koordinat dari GPS perangkat =================
     document.getElementById('tombol-lokasi-saya').addEventListener('click', () => {

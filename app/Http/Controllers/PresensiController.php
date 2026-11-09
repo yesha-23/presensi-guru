@@ -104,8 +104,20 @@ class PresensiController extends Controller
 
         $j = $jadwal->jadwal($user, $waktu);
 
-        // Presensi datang setelah batas (mis. 12.00) TETAP dicatat dengan status "Lewat Batas".
-        // Yang ditolak hanya presensi datang setelah jam kerja berakhir (jadwal pulang).
+        // Presensi datang setelah batas (mis. 12.00): dicatat "Lewat Batas" atau ditolak, sesuai Pengaturan.
+        // Presensi datang setelah jam kerja berakhir (jadwal pulang) selalu ditolak.
+        if (! $presensi->jam_datang && $waktu->lt($j['pulang'])
+            && Presensi::tolakLewatBatas() && Presensi::lewatBatas($waktu, $j)) {
+            return response()->json([
+                'hasil' => 'info',
+                'judul' => 'Presensi datang sudah ditutup',
+                'nama'  => $user->nama_lengkap,
+                'pesan' => 'Batas presensi datang hari ini pukul '.Presensi::batasDatang($j)->format('H.i').' sudah lewat. '
+                    .'Hari ini akan tercatat Alpa, kecuali Anda memiliki izin, sakit, atau tugas khusus yang disetujui. '
+                    .'Jika Anda sebenarnya hadir tetapi gagal presensi, hubungi administrator untuk koreksi.',
+            ]);
+        }
+
         if (! $presensi->jam_datang && $waktu->gte($j['pulang'])) {
             return response()->json([
                 'hasil' => 'info',

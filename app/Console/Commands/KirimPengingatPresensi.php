@@ -50,8 +50,9 @@ class KirimPengingatPresensi extends Command
             $batasTepat = $j['masuk']->copy()->addMinutes($j['toleransi']);
             $batasTerakhir = $batasTerakhir ? $batasTerakhir->max($batasTepat) : $batasTepat->copy();
 
-            // Pengingat datang: dari jam pengingat (06.45, atau 15 menit sebelum masuk pada Hari Kerja Tambahan) sampai batas toleransi
-            $mulaiDatang = $j['hkt']
+            // Pengingat datang: dari jam pengingat (06.45) sampai batas toleransi.
+            // Hari Kerja Tambahan & pegawai jam kerja khusus: mulai 15 menit sebelum jam masuknya.
+            $mulaiDatang = ($j['hkt'] || $j['khusus'])
                 ? $j['masuk']->copy()->subMinutes(15)
                 : Carbon::parse($sekarang->toDateString().' '.$jamPengingatDatang);
 
