@@ -50,7 +50,7 @@
                        class="block rounded-2xl border-2 bg-white p-4 {{ $dipilih?->id === $p->id ? 'border-merah' : 'border-transparent hover:border-garis' }}">
                         <div class="flex justify-between text-xs">
                             <span class="font-bold uppercase text-cyan-800">
-                                {{ $p->jenis }}{{ $p->jenis === 'Sakit' && $p->tanggal_mulai->lt($p->created_at->copy()->startOfDay()) ? ' · Susulan' : '' }}
+                                {{ $p->jenis }}{{ $p->labelWaktu() }}
                             </span>
                             <span class="text-gray-500">Diajukan {{ $p->created_at->translatedFormat('j M') }}</span>
                         </div>

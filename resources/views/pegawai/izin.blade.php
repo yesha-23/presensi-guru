@@ -88,7 +88,8 @@
         </div>
 
         <div class="rounded-2xl bg-yellow-50 p-4 text-sm text-yellow-900">
-            Izin paling lambat H-1. Sakit di hari yang sama atau susulan paling lambat H+1.
+            Izin terencana diajukan paling lambat H-1. Izin mendadak (keadaan darurat) boleh diajukan untuk hari ini selama belum presensi datang.
+            Sakit di hari yang sama atau susulan paling lambat H+1.
         </div>
 
         @if ($edit)
@@ -140,10 +141,10 @@
     const tglMulai = formIzin.elements['tanggal_mulai'];
     const tglSelesai = formIzin.elements['tanggal_selesai'];
 
-    // Batas tanggal di kalender mengikuti aturan H-1 (izin) dan H+1 (sakit)
+    // Batas tanggal di kalender: izin mulai hari ini (mendadak) atau setelahnya, sakit kemarin s.d. hari ini
     function aturBatasTanggal() {
         const sakit = formIzin.querySelector('input[name="jenis"]:checked')?.value === 'Sakit';
-        tglMulai.min = sakit ? formIzin.dataset.kemarin : formIzin.dataset.besok;
+        tglMulai.min = sakit ? formIzin.dataset.kemarin : formIzin.dataset.hariIni;
         tglMulai.max = sakit ? formIzin.dataset.hariIni : '';
         if (!tglMulai.value || tglMulai.value < tglMulai.min || (tglMulai.max && tglMulai.value > tglMulai.max)) {
             tglMulai.value = sakit ? formIzin.dataset.hariIni : formIzin.dataset.besok;

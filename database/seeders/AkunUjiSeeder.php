@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Pengaturan;
 use App\Models\Role;
 use App\Models\Unit;
 use App\Models\User;
@@ -18,6 +19,13 @@ class AkunUjiSeeder extends Seeder
                 'data' => ['nip' => 'ADM001', 'nama_lengkap' => 'Petrus Suhardi, S.Pd', 'nama_panggilan' => 'Pak Petrus',
                            'email' => 'admin@presensi.test', 'unit_id' => $unit['YYS'], 'kategori' => 'Staf',
                            'jabatan' => 'Kabag Adm. Umum'],
+                'peran' => [Role::PEGAWAI, Role::ADMIN],
+            ],
+            [
+                // Admin kedua: karyawan bagian administrasi SD (bukan penyetuju pengajuan kepala sekolah)
+                'data' => ['nip' => 'ADM002', 'nama_lengkap' => 'Tongam', 'nama_panggilan' => 'Pak Tongam',
+                           'email' => 'admin2@presensi.test', 'unit_id' => $unit['SD'], 'kategori' => 'Karyawan',
+                           'jabatan' => 'Staf Administrasi'],
                 'peran' => [Role::PEGAWAI, Role::ADMIN],
             ],
             [
@@ -60,5 +68,11 @@ class AkunUjiSeeder extends Seeder
 
             $user->roles()->sync(Role::whereIn('nama', $item['peran'])->pluck('id'));
         }
+
+        // Pengajuan kepala sekolah: Ketua Yayasan atau Kabag Adm. Umum (Pak Petrus), bukan admin kedua
+        Pengaturan::updateOrCreate(
+            ['kunci' => 'penyetuju_pengajuan_ks'],
+            ['nilai' => (string) User::where('nip', 'ADM001')->value('id')]
+        );
     }
 }

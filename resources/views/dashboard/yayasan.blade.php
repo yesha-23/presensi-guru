@@ -58,7 +58,7 @@
         @php $s = $suratMenunggu->first(); @endphp
         <div class="rounded-2xl bg-yellow-50 p-5">
             <div class="text-xs font-bold uppercase text-yellow-900">Menunggu tanda tangan Anda</div>
-            <div class="mt-1 text-lg font-extrabold">{{ $suratMenunggu->count() }} surat tugas kasus khusus</div>
+            <div class="mt-1 text-lg font-extrabold">{{ $suratMenunggu->count() }} surat tugas luar kota / kasus khusus</div>
             <div class="text-sm text-gray-700">{{ $s->perihal }} · {{ $s->pegawai->count() }} pegawai · {{ $s->rentangTanggal() }}</div>
             <a href="{{ route('persetujuan', ['tab' => 'surat', 'id' => $s->id]) }}"
                class="mt-3 block rounded-xl bg-merah py-2.5 text-center text-sm font-bold text-white hover:bg-merah-tua">

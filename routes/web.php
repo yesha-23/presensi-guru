@@ -128,6 +128,7 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::put('/pengaturan/lokasi', [PengaturanController::class, 'lokasi'])->name('pengaturan.lokasi');
         Route::put('/pengaturan/presensi', [PengaturanController::class, 'presensi'])->name('pengaturan.presensi');
         Route::put('/pengaturan/kop', [PengaturanController::class, 'kop'])->name('pengaturan.kop');
+        Route::put('/pengaturan/penyetuju', [PengaturanController::class, 'penyetuju'])->name('pengaturan.penyetuju');
 
         // Data Presensi
         Route::get('/presensi', [DataPresensiController::class, 'index'])->name('presensi');

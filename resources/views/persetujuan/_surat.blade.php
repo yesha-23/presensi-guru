@@ -5,7 +5,7 @@
             <a href="{{ route('persetujuan', ['tab' => 'surat', 'id' => $s->id]) }}"
                class="block rounded-2xl border-2 bg-white p-4 {{ $suratDipilih?->id === $s->id ? 'border-merah' : 'border-transparent hover:border-garis' }}">
                 <div class="text-xs font-bold uppercase text-emerald-800">
-                    Surat tugas{{ $s->kasus_khusus ? ' · Kasus khusus' : '' }}
+                    Surat tugas{{ $s->kasus_khusus ? ' · Luar kota / kasus khusus' : '' }}
                 </div>
                 <div class="mt-1 font-bold">{{ $s->perihal }}</div>
                 <div class="text-sm text-gray-500">{{ $s->rentangTanggal() }} · {{ $s->pegawai->count() }} pegawai</div>

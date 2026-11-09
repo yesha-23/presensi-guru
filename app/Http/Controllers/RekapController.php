@@ -8,6 +8,7 @@ use App\Models\Role;
 use App\Models\Semester;
 use App\Models\Unit;
 use App\Models\User;
+use App\Services\PersetujuanService;
 use App\Services\RekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
@@ -191,7 +192,7 @@ class RekapController extends Controller
 
         return [
             'kepsek' => $nama(Role::KEPALA_SEKOLAH, $unit?->kode === 'KBTK' ? 'KBTK' : 'SD'),
-            'kabag'  => $nama(Role::ADMIN),
+            'kabag'  => PersetujuanService::kabag()?->nama_lengkap,
             'ketua'  => $nama(Role::KETUA_YAYASAN),
         ];
     }
