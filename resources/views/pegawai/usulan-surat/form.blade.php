@@ -25,7 +25,7 @@
     </div>
 </div>
 
-<div class="mt-6 max-w-3xl">
+<div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
     {{-- ================= FORM (tambah & edit) ================= --}}
     <form method="POST" enctype="multipart/form-data"
           action="{{ $edit ? route('pegawai.usulan-surat.update', $edit) : route('pegawai.usulan-surat.store') }}"
@@ -128,11 +128,6 @@
             @error('lampiran') <span class="mt-1 block text-center text-xs text-merah">{{ $message }}</span> @enderror
         </div>
 
-        <div class="rounded-2xl bg-yellow-50 p-4 text-sm text-yellow-900">
-            Usulan dikirim ke administrator untuk diperiksa dan dilengkapi (misalnya rekan yang ikut bertugas),
-            lalu ditandatangani kepala sekolah. Tanggal tugas tercatat sebagai Tugas Khusus setelah surat disetujui.
-        </div>
-
         @if ($edit)
             <div class="grid grid-cols-2 gap-3">
                 <a href="{{ $kembali }}" class="rounded-2xl border border-garis bg-white py-4 text-center font-bold hover:bg-gray-50">Batal edit</a>
@@ -143,5 +138,43 @@
         @endif
     </form>
 
+    {{-- ================= PANDUAN (kanan di laptop, di bawah form di HP) ================= --}}
+    <aside class="space-y-4 lg:sticky lg:top-6">
+        <div class="rounded-3xl border border-garis bg-white p-5">
+            <h2 class="font-bold">Alur usulan</h2>
+            <ol class="mt-4 space-y-4">
+                @foreach ([
+                    ['send',       'Anda mengusulkan',        'Isi data kegiatan dan lampirkan undangan.'],
+                    ['inbox',      'Administrator memproses', 'Data diperiksa dan dilengkapi, misalnya rekan yang ikut bertugas.'],
+                    ['pen-line',   'Kepala sekolah menandatangani', 'Tugas luar kota juga ditandatangani Ketua Yayasan.'],
+                    ['file-check', 'Surat tugas terbit',      'Nomor dan PDF tersedia; hari tugas tercatat Tugas Khusus.'],
+                ] as $i => [$ikon, $judulLangkah, $teksLangkah])
+                    <li class="flex gap-3">
+                        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-krem text-merah">
+                            <i data-lucide="{{ $ikon }}" class="h-4 w-4"></i>
+                        </span>
+                        <div class="leading-snug">
+                            <div class="text-sm font-semibold">{{ $i + 1 }}. {{ $judulLangkah }}</div>
+                            <div class="text-xs text-gray-500">{{ $teksLangkah }}</div>
+                        </div>
+                    </li>
+                @endforeach
+            </ol>
+        </div>
+
+        <div class="rounded-3xl bg-yellow-50 p-5 text-sm text-yellow-900">
+            <div class="font-semibold">Perlu diperhatikan</div>
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+                <li>Undangan atau surat dari pemberi tugas wajib dilampirkan (PDF/JPG/PNG, maks. 2 MB).</li>
+                <li>Usulan masih dapat diubah atau dibatalkan selama berstatus <b>Diajukan</b>.</li>
+                <li>Pada hari tugas Anda tidak perlu presensi setelah surat disetujui.</li>
+                <li>Jam di luar jadwal kerja dapat diajukan sebagai lembur setelah surat terbit.</li>
+            </ul>
+        </div>
+
+        <a href="{{ $kembali }}" class="flex items-center justify-center gap-2 rounded-2xl border border-garis bg-white py-3 text-sm font-semibold hover:bg-gray-50">
+            <i data-lucide="list" class="h-4 w-4"></i> Lihat usulan saya
+        </a>
+    </aside>
 </div>
 @endsection
