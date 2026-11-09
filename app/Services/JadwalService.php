@@ -27,6 +27,7 @@ class JadwalService
      */
     public function jadwal(User $user, Carbon $tanggal): ?array
     {
+        // Sudah memperhitungkan jam kerja khusus pegawai (bila ada)
         $jamKerja = $user->jamKerja();
         if (! $jamKerja) {
             return null;
@@ -60,6 +61,7 @@ class JadwalService
             'pulang'    => Carbon::parse("{$tgl} {$pulang}"),
             'toleransi' => (int) $jamKerja->toleransi_menit,
             'hkt'       => (bool) $hkt,
+            'khusus'    => $user->jamKerjaKhusus !== null,
         ];
     }
 

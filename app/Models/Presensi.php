@@ -55,9 +55,13 @@ class Presensi extends Model
 
     public const LEWAT_BATAS = 'Lewat Batas';
 
+    /** Pilihan perlakuan presensi datang setelah batas (Pengaturan "mode_lewat_batas"). */
+    public const MODE_CATAT = 'catat';
+    public const MODE_TOLAK = 'tolak';
+
     /**
      * Batas presensi datang hari itu (Pengaturan "batas_presensi_datang", maks. jadwal pulang).
-     * Lewat dari jam ini presensi tetap dicatat, tetapi berstatus "Lewat Batas".
+     * Lewat dari jam ini presensi dicatat "Lewat Batas" atau ditolak, sesuai mode di Pengaturan.
      */
     public static function batasDatang(array $jadwal): Carbon
     {
@@ -65,22 +69,43 @@ class Presensi extends Model
             ->min($jadwal['pulang']);
     }
 
+    /** true bila administrator memilih: presensi datang setelah batas ditolak. */
+    public static function tolakLewatBatas(): bool
+    {
+        return Pengaturan::ambil('mode_lewat_batas', self::MODE_CATAT) === self::MODE_TOLAK;
+    }
+
+    /**
+     * Perbandingan jam dilakukan per menit: detik diabaikan.
+     * Contoh jam masuk 07.00 tanpa toleransi: 07.00.59 masih Tepat Waktu, 07.01.00 Terlambat.
+     */
+    private static function menit(Carbon $waktu): Carbon
+    {
+        return $waktu->copy()->startOfMinute();
+    }
+
+    /** Apakah jam datang sudah melewati batas presensi datang? */
+    public static function lewatBatas(Carbon $datang, array $jadwal): bool
+    {
+        return self::menit($datang)->gt(self::batasDatang($jadwal));
+    }
+
     /**
      * Status & lama terlambat untuk jam datang tertentu.
-     * Tepat Waktu : ≤ jam masuk + toleransi
+     * Tepat Waktu : menit datang ≤ jam masuk + toleransi
      * Terlambat   : > toleransi s.d. batas presensi datang
-     * Lewat Batas : > batas presensi datang (tetap Hadir)
-     * Lama terlambat selalu dihitung dari jam masuk.
+     * Lewat Batas : > batas presensi datang (tetap Hadir; bila mode Tolak, scan ditolak sebelum sampai sini)
+     * Lama terlambat selalu dihitung dari jam masuk, sampai detik.
      */
     public static function hitungDatang(Carbon $datang, array $jadwal): array
     {
-        $terlambat = $datang->gt($jadwal['masuk']->copy()->addMinutes($jadwal['toleransi']));
+        $terlambat = self::menit($datang)->gt($jadwal['masuk']->copy()->addMinutes($jadwal['toleransi']));
 
         return [
             'status_datang'   => match (true) {
-                $datang->gt(self::batasDatang($jadwal)) => self::LEWAT_BATAS,
-                $terlambat                              => 'Terlambat',
-                default                                 => 'Tepat Waktu',
+                self::lewatBatas($datang, $jadwal) => self::LEWAT_BATAS,
+                $terlambat                         => 'Terlambat',
+                default                            => 'Tepat Waktu',
             },
             'detik_terlambat' => $terlambat ? $datang->timestamp - $jadwal['masuk']->timestamp : 0,
         ];

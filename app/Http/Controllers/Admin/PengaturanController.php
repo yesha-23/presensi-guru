@@ -4,9 +4,14 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\JamKerja;
+use App\Models\JamKerjaKhusus;
 use App\Models\Lokasi;
 use App\Models\Pengaturan;
+use App\Models\Presensi;
+use App\Models\Role;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class PengaturanController extends Controller
 {
@@ -17,12 +22,18 @@ class PengaturanController extends Controller
         return view('admin.pengaturan', [
             'judul'    => 'Pengaturan',
             'jamKerja' => JamKerja::with('unit')->orderBy('unit_id')->orderBy('kategori')->get(),
+            // Jam kerja khusus per pegawai, urut nama
+            'jamKhusus' => JamKerjaKhusus::with('user.unit')->get()
+                ->sortBy(fn ($j) => $j->user?->nama_lengkap)->values(),
+            'pilihanPegawai' => $this->pegawaiPresensi()->with('unit')->orderBy('nama_lengkap')
+                ->get(['id', 'nama_lengkap', 'unit_id', 'kategori']),
             'lokasi'   => Lokasi::first(),
             'nilai'    => [
                 'ambang_wajah'          => $nilai('ambang_wajah', '0.5'),
                 'akurasi_gps_maks'      => $nilai('akurasi_gps_maks', '150'),
                 'jam_pengingat_datang'  => substr((string) $nilai('jam_pengingat_datang', '06:45'), 0, 5),
                 'batas_presensi_datang' => substr((string) $nilai('batas_presensi_datang', '12:00'), 0, 5),
+                'mode_lewat_batas'      => $nilai('mode_lewat_batas', Presensi::MODE_CATAT),
                 'hari_kerja'            => array_map('intval', explode(',', (string) $nilai('hari_kerja', '1,2,3,4,5'))),
                 'alamat_yayasan'        => $nilai('alamat_yayasan', ''),
                 'kota_surat'            => $nilai('kota_surat', 'Sleman'),
@@ -66,6 +77,44 @@ class PengaturanController extends Controller
         return back()->with('sukses', 'Jam kerja disimpan. Berlaku untuk presensi berikutnya; presensi yang sudah tercatat tidak berubah.');
     }
 
+    /** Tambah atau ubah jam kerja khusus satu pegawai (satu pegawai = satu baris). */
+    public function simpanJamKhusus(Request $request)
+    {
+        $request->merge([
+            'jam_masuk'  => substr((string) $request->input('jam_masuk'), 0, 5),
+            'jam_pulang' => substr((string) $request->input('jam_pulang'), 0, 5),
+        ]);
+
+        $data = $request->validateWithBag('jamKhusus', [
+            'user_id'    => ['required', Rule::in($this->pegawaiPresensi()->pluck('id'))],
+            'jam_masuk'  => ['required', 'date_format:H:i'],
+            'jam_pulang' => ['required', 'date_format:H:i', 'after:jam_masuk'],
+            'keterangan' => ['nullable', 'string', 'max:150'],
+        ], [
+            'user_id.required' => 'Pilih pegawai.',
+            'user_id.in'       => 'Pegawai tidak valid atau tidak wajib presensi.',
+            'required'         => ':attribute wajib diisi.',
+            'date_format'      => 'Format :attribute tidak valid.',
+            'jam_pulang.after' => 'Jam pulang harus setelah jam masuk.',
+            'max'              => ':attribute maksimal :max karakter.',
+        ], ['jam_masuk' => 'Jam masuk', 'jam_pulang' => 'Jam pulang', 'keterangan' => 'Keterangan']);
+
+        $baru = ! JamKerjaKhusus::where('user_id', $data['user_id'])->exists();
+        $jam = JamKerjaKhusus::updateOrCreate(['user_id' => $data['user_id']], $data);
+
+        return back()->with('sukses', ($baru ? 'Jam kerja khusus ditambahkan' : 'Jam kerja khusus diperbarui')
+            ." untuk {$jam->user->nama_lengkap} ({$data['jam_masuk']}–{$data['jam_pulang']}). Berlaku untuk presensi berikutnya.");
+    }
+
+    /** Hapus jam kerja khusus: pegawai kembali memakai jam unit & kategorinya. */
+    public function hapusJamKhusus(JamKerjaKhusus $jamKhusus)
+    {
+        $nama = $jamKhusus->user?->nama_lengkap ?? 'pegawai';
+        $jamKhusus->delete();
+
+        return back()->with('sukses', "Jam kerja khusus {$nama} dihapus. Pegawai kembali memakai jam kerja unit dan kategorinya.");
+    }
+
     /** SR-F08: titik lokasi kompleks & radius presensi. */
     public function lokasi(Request $request)
     {
@@ -95,6 +144,7 @@ class PengaturanController extends Controller
             'akurasi_gps_maks'      => ['required', 'integer', 'min:10', 'max:1000'],
             'jam_pengingat_datang'  => ['required', 'date_format:H:i'],
             'batas_presensi_datang' => ['required', 'date_format:H:i'],
+            'mode_lewat_batas'      => ['required', Rule::in([Presensi::MODE_CATAT, Presensi::MODE_TOLAK])],
             'hari_kerja'            => ['required', 'array', 'min:1'],
             'hari_kerja.*'          => ['integer', 'between:1,7'],
         ], [
@@ -104,7 +154,7 @@ class PengaturanController extends Controller
             'date_format'         => 'Format jam tidak valid.',
         ]);
 
-        foreach (['ambang_wajah', 'akurasi_gps_maks', 'jam_pengingat_datang', 'batas_presensi_datang'] as $kunci) {
+        foreach (['ambang_wajah', 'akurasi_gps_maks', 'jam_pengingat_datang', 'batas_presensi_datang', 'mode_lewat_batas'] as $kunci) {
             Pengaturan::updateOrCreate(['kunci' => $kunci], ['nilai' => (string) $data[$kunci]]);
         }
         Pengaturan::updateOrCreate(['kunci' => 'hari_kerja'], [
@@ -129,5 +179,13 @@ class PengaturanController extends Controller
         }
 
         return back()->with('sukses', 'Data kop surat disimpan. Berlaku untuk surat tugas yang disetujui berikutnya.');
+    }
+
+    /** Pegawai aktif yang wajib presensi (punya kategori & peran Pegawai). */
+    private function pegawaiPresensi()
+    {
+        return User::where('status', 'Aktif')
+            ->whereNotNull('kategori')
+            ->whereHas('roles', fn ($q) => $q->where('nama', Role::PEGAWAI));
     }
 }

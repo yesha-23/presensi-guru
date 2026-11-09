@@ -123,6 +123,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         // Pengaturan
         Route::get('/pengaturan', [PengaturanController::class, 'index'])->name('pengaturan');
         Route::put('/pengaturan/jam-kerja', [PengaturanController::class, 'jamKerja'])->name('pengaturan.jam-kerja');
+        Route::post('/pengaturan/jam-khusus', [PengaturanController::class, 'simpanJamKhusus'])->name('pengaturan.jam-khusus');
+        Route::delete('/pengaturan/jam-khusus/{jamKhusus}', [PengaturanController::class, 'hapusJamKhusus'])->name('pengaturan.jam-khusus.hapus');
         Route::put('/pengaturan/lokasi', [PengaturanController::class, 'lokasi'])->name('pengaturan.lokasi');
         Route::put('/pengaturan/presensi', [PengaturanController::class, 'presensi'])->name('pengaturan.presensi');
         Route::put('/pengaturan/kop', [PengaturanController::class, 'kop'])->name('pengaturan.kop');

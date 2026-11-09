@@ -10,8 +10,10 @@
             : 'Bukan hari kerja');
 
     $lengkap = $hariIni?->jam_datang && $hariIni?->jam_pulang;
-    // Belum datang & sudah lewat batas 12.00: masih bisa presensi (berlabel Lewat Batas) sampai jam pulang
-    $lewatBatas = $batasDatang && ! $hariIni?->jam_datang && now()->gt($batasDatang);
+    // Belum datang & sudah lewat batas 12.00 (dibandingkan per menit):
+    // mode Catat -> masih bisa presensi (berlabel Lewat Batas) sampai jam pulang; mode Tolak -> presensi datang ditutup
+    $lewatBatas = $batasDatang && ! $hariIni?->jam_datang && now()->startOfMinute()->gt($batasDatang);
+    $datangDitutup = $lewatBatas && \App\Models\Presensi::tolakLewatBatas();
     $kerjaSelesai = $jadwalHariIni && ! $hariIni?->jam_datang && now()->gte($jadwalHariIni['pulang']);
 @endphp
 
@@ -97,6 +99,13 @@
             <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
                 <b>Jam kerja hari ini sudah berakhir ({{ $jadwalHariIni['pulang']->format('H.i') }}).</b>
                 Hari ini akan tercatat Alpa, kecuali ada izin, sakit, atau tugas khusus yang disetujui.
+                <a href="{{ route('pegawai.izin') }}" class="font-semibold underline">Ajukan sakit</a>
+            </div>
+        @elseif ($datangDitutup)
+            <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
+                <b>Presensi datang sudah ditutup ({{ $batasDatang->format('H.i') }}).</b>
+                Hari ini akan tercatat Alpa, kecuali ada izin, sakit, atau tugas khusus yang disetujui.
+                Jika Anda hadir tetapi gagal presensi, hubungi administrator.
                 <a href="{{ route('pegawai.izin') }}" class="font-semibold underline">Ajukan sakit</a>
             </div>
         @elseif ($lewatBatas)
