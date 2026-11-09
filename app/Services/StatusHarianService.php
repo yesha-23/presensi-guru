@@ -31,11 +31,17 @@ class StatusHarianService
             return 'Hadir';
         }
 
-        // Hari nonkerja/libur tetap Libur meskipun tercakup izin atau sakit
+        // Hari nonkerja/libur tetap Libur meskipun tercakup izin atau sakit,
+        // kecuali ada surat tugas (mis. petugas pelayanan hari Minggu): dicatat Tugas Khusus.
         $hariKerja = $this->jadwal->jadwal($user, $tanggal) !== null;
-        $khusus = $hariKerja ? $this->jadwal->kondisiKhusus($user, $tanggal) : null;
-        $status = $hariKerja ? ($khusus['status'] ?? 'Alpa') : 'Libur';
-        $referensi = $khusus['referensi'] ?? null;
+        $khusus = $this->jadwal->kondisiKhusus($user, $tanggal);
+
+        if ($hariKerja) {
+            $status = $khusus['status'] ?? 'Alpa';
+        } else {
+            $status = ($khusus['status'] ?? null) === 'Tugas Khusus' ? 'Tugas Khusus' : 'Libur';
+        }
+        $referensi = in_array($status, ['Izin', 'Sakit', 'Tugas Khusus'], true) ? ($khusus['referensi'] ?? null) : null;
 
         // Hari libur tanpa catatan apa pun tidak perlu dibuatkan baris
         if ($status === 'Libur' && ! $presensi) {

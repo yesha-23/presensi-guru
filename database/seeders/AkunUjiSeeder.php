@@ -69,6 +69,13 @@ class AkunUjiSeeder extends Seeder
             $user->roles()->sync(Role::whereIn('nama', $item['peran'])->pluck('id'));
         }
 
+        // Kabag Adm. Umum (unit Yayasan) dicantumkan di rekap SD (kelompok Staf) dan rekap KB-TK (kelompok Guru,
+        // sesuai format rekap KB-TK)
+        Pengaturan::updateOrCreate(
+            ['kunci' => 'rekap_pegawai_yayasan'],
+            ['nilai' => json_encode([(string) User::where('nip', 'ADM001')->value('id') => ['SD' => 'Staf', 'KBTK' => 'Guru']])]
+        );
+
         // Pengajuan kepala sekolah: Ketua Yayasan atau Kabag Adm. Umum (Pak Petrus), bukan admin kedua
         Pengaturan::updateOrCreate(
             ['kunci' => 'penyetuju_pengajuan_ks'],

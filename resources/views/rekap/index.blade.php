@@ -6,6 +6,11 @@
     $efektif = $unit ? ($efektifUnit[$unit->id] ?? 0) : null;
     $th = 'px-2 py-2 text-center font-semibold leading-tight';
     $manual = 'bg-gray-700';
+    $teksBulat = [
+        R::BULAT_SETENGAH      => 'ke 0,5 jam terdekat',
+        R::BULAT_SETENGAH_ATAS => 'ke atas, kelipatan 0,5 jam',
+        R::BULAT_DESIMAL       => '1 angka desimal',
+    ][\App\Models\Pengaturan::ambil('pembulatan_jam_rekap', R::BULAT_SETENGAH)] ?? 'ke 0,5 jam terdekat';
 @endphp
 
 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -37,60 +42,66 @@
 </div>
 
 <div class="mt-2 overflow-hidden rounded-2xl border border-garis bg-white">
+    @if ($unit)
+        <div class="border-b border-garis bg-krem/60 px-4 py-2 text-center text-sm font-bold">
+            {{ $format['judul'] }} · {{ $format['subjudul'] }}
+        </div>
+    @endif
     <div class="overflow-x-auto">
-        <table class="w-full min-w-[64rem] text-sm">
+        <table class="w-full text-sm" style="min-width: {{ 24 + count($format['kolom']) * 4.5 }}rem">
             <thead class="bg-gray-900 text-white">
                 <tr>
                     <th class="{{ $th }} w-10">No</th>
                     <th class="px-3 py-2 text-left font-semibold">Nama</th>
-                    <th class="{{ $th }}">MSUK<div class="text-xs font-normal opacity-70">hari</div></th>
-                    <th class="{{ $th }}">DNAS<div class="text-xs font-normal opacity-70">hari</div></th>
-                    <th class="{{ $th }}">TLAT<div class="text-xs font-normal opacity-70">jam</div></th>
-                    <th class="{{ $th }}">LEMB<div class="text-xs font-normal opacity-70">jam</div></th>
-                    <th class="{{ $th }} {{ $manual }}">DGTI<div class="text-xs font-normal opacity-70">jam</div></th>
-                    <th class="{{ $th }} {{ $manual }}">PGTI<div class="text-xs font-normal opacity-70">jam</div></th>
-                    <th class="{{ $th }} {{ $manual }}">LJAM<div class="text-xs font-normal opacity-70">JP</div></th>
-                    <th class="{{ $th }} {{ $manual }}">Ekskul<div class="text-xs font-normal opacity-70">jaga</div></th>
-                    <th class="{{ $th }} {{ $manual }}">Ekskul<div class="text-xs font-normal opacity-70">ajar ×</div></th>
-                    <th class="{{ $th }}">KDLM<div class="text-xs font-normal opacity-70">hari</div></th>
-                    <th class="{{ $th }}">KKLR<div class="text-xs font-normal opacity-70">hari</div></th>
+                    @foreach ($format['kolom'] as [$judulKolom, $satuan, $isiKolom])
+                        <th class="{{ $th }} {{ $isiKolom ? '' : $manual }}">
+                            {{ $judulKolom }}<div class="text-xs font-normal opacity-70">{{ $satuan }}</div>
+                        </th>
+                    @endforeach
                     <th class="px-3 py-2 text-left font-semibold">Keterangan</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-garis">
-                @forelse (['Guru' => 'A. GURU', 'Staf' => 'B. STAF'] as $kel => $judulKel)
+                @foreach (['Guru' => 'A. GURU', 'Staf' => 'B. STAF'] as $kel => $judulKel)
                     @php $isi = $baris->where('kelompok', $kel)->values(); @endphp
                     @if ($isi->isNotEmpty())
-                        <tr><td colspan="14" class="bg-merah-muda px-3 py-2 font-bold text-merah">{{ $judulKel }}</td></tr>
+                        <tr><td colspan="{{ count($format['kolom']) + 3 }}" class="bg-merah-muda px-3 py-2 font-bold text-merah">{{ $judulKel }}</td></tr>
                         @foreach ($isi as $i => $r)
                             <tr>
                                 <td class="px-2 py-2.5 text-center text-gray-500">{{ $i + 1 }}</td>
                                 <td class="px-3 py-2.5">
                                     {{ $r['user']->nama_lengkap }}
-                                    @if (! $unit) <span class="text-xs text-gray-400">· {{ $r['user']->unit?->label() }}</span> @endif
+                                    @if (! $unit || $r['user']->unit_id !== $unit->id)
+                                        <span class="text-xs text-gray-400">· {{ $r['user']->unit?->label() }}</span>
+                                    @endif
                                     @if ($r['user']->trashed() || $r['user']->status !== 'Aktif') <span class="text-xs text-gray-400">(arsip)</span> @endif
                                 </td>
-                                <td class="px-2 py-2.5 text-center font-bold">{{ $r['hadir'] }}</td>
-                                <td class="px-2 py-2.5 text-center">{{ $r['dnas'] }}</td>
-                                <td class="px-2 py-2.5 text-center">{{ R::angka(R::jam($r['detik_terlambat'])) }}</td>
-                                <td class="px-2 py-2.5 text-center">{{ R::angka(R::jamDariMenit($r['menit_lembur'])) }}</td>
-                                <td class="bg-gray-100" colspan="5"></td>
-                                <td class="px-2 py-2.5 text-center">{{ $r['kdlm'] }}</td>
-                                <td class="px-2 py-2.5 text-center">{{ $r['kklr'] }}</td>
+                                @foreach ($format['kolom'] as [$judulKolom, $satuan, $isiKolom])
+                                    @if ($isiKolom)
+                                        <td class="px-2 py-2.5 text-center {{ $isiKolom === 'hadir' ? 'font-bold' : '' }}">{{ R::nilaiKolom($r, $isiKolom) }}</td>
+                                    @else
+                                        <td class="bg-gray-100"></td>
+                                    @endif
+                                @endforeach
                                 <td class="px-3 py-2.5">{{ $r['keterangan'] }}</td>
                             </tr>
                         @endforeach
                     @endif
-                @empty
-                @endforelse
+                @endforeach
 
                 @if ($baris->isEmpty())
-                    <tr><td colspan="14" class="px-4 py-10 text-center text-gray-500">Tidak ada pegawai pada filter ini.</td></tr>
+                    <tr><td colspan="{{ count($format['kolom']) + 3 }}" class="px-4 py-10 text-center text-gray-500">Tidak ada pegawai pada filter ini.</td></tr>
                 @endif
             </tbody>
         </table>
     </div>
 </div>
+
+<p class="mt-2 text-xs text-gray-500">
+    Jam terlambat dan lembur dibulatkan sesuai Pengaturan &rsaquo; Rekap
+    ({{ $teksBulat }}).
+    Tugas khusus di hari libur dihitung di kolom kegiatan dan tidak mengurangi alpa.
+</p>
 
 {{-- Blok tanda tangan --}}
 <div class="mt-4 grid gap-6 rounded-2xl border border-garis bg-white p-6 text-center text-sm sm:grid-cols-3">
@@ -100,7 +111,7 @@
         <div class="mt-12 font-bold">{{ $penandatangan['kepsek'] ?? '..............................' }}</div>
     </div>
     <div>
-        <div class="text-gray-500">&nbsp;</div>
+        <div class="text-gray-500">Divalidasi,</div>
         <div class="mt-1">Kabag Adm. Umum</div>
         <div class="mt-12 font-bold">{{ $penandatangan['kabag'] ?? '..............................' }}</div>
     </div>

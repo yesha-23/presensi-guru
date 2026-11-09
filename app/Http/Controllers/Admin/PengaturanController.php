@@ -11,6 +11,7 @@ use App\Models\Presensi;
 use App\Models\Role;
 use App\Models\User;
 use App\Services\PersetujuanService;
+use App\Services\RekapService;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -32,6 +33,10 @@ class PengaturanController extends Controller
             // Administrator yang dapat ditunjuk menyetujui pengajuan kepala sekolah
             'daftarAdmin'   => $this->administrator()->with('unit')->orderBy('nama_lengkap')->get(),
             'idPenyetujuKs' => PersetujuanService::idPenyetujuKs(),
+            // Pegawai unit Yayasan (mis. Kabag Adm. Umum) yang dapat ditampilkan di rekap SD / KB-TK
+            'pegawaiYayasan'  => $this->pegawaiPresensi()->whereHas('unit', fn ($q) => $q->where('kode', 'YYS'))
+                ->orderBy('nama_lengkap')->get(['id', 'nama_lengkap', 'kategori', 'jabatan']),
+            'tampilanYayasan' => RekapService::tampilanYayasan(),
             'nilai'    => [
                 'ambang_wajah'          => $nilai('ambang_wajah', '0.5'),
                 'akurasi_gps_maks'      => $nilai('akurasi_gps_maks', '150'),
@@ -43,6 +48,9 @@ class PengaturanController extends Controller
                 'kota_surat'            => $nilai('kota_surat', 'Sleman'),
                 'telepon_surat'         => $nilai('telepon_surat', ''),
                 'web_surat'             => $nilai('web_surat', ''),
+                'awal_periode_rekap_SD'   => (int) $nilai('awal_periode_rekap_SD', 1),
+                'awal_periode_rekap_KBTK' => (int) $nilai('awal_periode_rekap_KBTK', 26),
+                'pembulatan_jam_rekap'    => $nilai('pembulatan_jam_rekap', RekapService::BULAT_SETENGAH),
             ],
         ]);
     }
@@ -187,6 +195,38 @@ class PengaturanController extends Controller
 
         return back()->with('sukses', 'Penyetuju pengajuan kepala sekolah disimpan: Ketua Yayasan'
             .($nama->isNotEmpty() ? ', '.$nama->join(', ') : ' saja').'.');
+    }
+
+    /** Periode bulanan per unit, pembulatan jam, dan pegawai Yayasan di rekap unit. */
+    public function rekap(Request $request)
+    {
+        $kelompok = ['', 'Guru', 'Staf'];
+        $idYayasan = $this->pegawaiPresensi()->whereHas('unit', fn ($q) => $q->where('kode', 'YYS'))->pluck('id');
+
+        $data = $request->validate([
+            'awal_periode_rekap_SD'   => ['required', 'integer', 'between:1,28'],
+            'awal_periode_rekap_KBTK' => ['required', 'integer', 'between:1,28'],
+            'pembulatan_jam_rekap'    => ['required', Rule::in([RekapService::BULAT_SETENGAH, RekapService::BULAT_SETENGAH_ATAS, RekapService::BULAT_DESIMAL])],
+            'yayasan'                 => ['nullable', 'array'],
+            'yayasan.*.SD'            => ['nullable', Rule::in($kelompok)],
+            'yayasan.*.KBTK'          => ['nullable', Rule::in($kelompok)],
+        ], [
+            'between' => 'Tanggal awal periode harus antara 1 dan 28.',
+        ]);
+
+        foreach (['awal_periode_rekap_SD', 'awal_periode_rekap_KBTK', 'pembulatan_jam_rekap'] as $kunci) {
+            Pengaturan::updateOrCreate(['kunci' => $kunci], ['nilai' => (string) $data[$kunci]]);
+        }
+
+        // Hanya pegawai Yayasan yang valid, dan hanya yang tampil di minimal satu rekap unit
+        $tampilan = collect($data['yayasan'] ?? [])
+            ->filter(fn ($a, $id) => $idYayasan->contains((int) $id))
+            ->map(fn ($a) => ['SD' => $a['SD'] ?? '', 'KBTK' => $a['KBTK'] ?? ''])
+            ->filter(fn ($a) => $a['SD'] !== '' || $a['KBTK'] !== '');
+
+        Pengaturan::updateOrCreate(['kunci' => 'rekap_pegawai_yayasan'], ['nilai' => $tampilan->toJson()]);
+
+        return back()->with('sukses', 'Pengaturan rekap disimpan. Berlaku untuk tampilan dan unduhan rekap berikutnya.');
     }
 
     /** Data kop surat tugas. */

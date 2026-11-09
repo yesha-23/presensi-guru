@@ -8,10 +8,12 @@
     // Laptop: di Laporan PKG unit lebih sempit dan semester mengisi sisanya; di Rekap semua berbagi rata.
     $lebarUnit = $modePkg ? 'md:w-56 md:shrink-0' : 'md:flex-1';
 
-    // Pilihan bulan berbahasa Indonesia: 18 bulan terakhir (+ bulan terpilih bila di luar daftar)
-    $pilihanBulan = collect(range(0, 17))
+    // Pilihan bulan berbahasa Indonesia: bulan depan s.d. 17 bulan lalu (+ bulan terpilih bila di luar daftar).
+    // Untuk unit dengan periode 26–25, "bulan" = bulan tempat periode berakhir.
+    $bulanTerpilih = ($bulanRekap ?? $mulai)->copy()->startOfMonth();
+    $pilihanBulan = collect(range(-1, 17))
         ->map(fn ($i) => today()->startOfMonth()->subMonths($i))
-        ->push($mulai->copy()->startOfMonth())
+        ->push($bulanTerpilih)
         ->unique(fn ($b) => $b->format('Y-m'))
         ->sortByDesc(fn ($b) => $b->format('Y-m'))
         ->values();
@@ -81,7 +83,7 @@
                 <span class="sr-only">Bulan</span>
                 <select name="bulan" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
                     @foreach ($pilihanBulan as $b)
-                        <option value="{{ $b->format('Y-m') }}" @selected($b->format('Y-m') === $mulai->format('Y-m'))>
+                        <option value="{{ $b->format('Y-m') }}" @selected($b->format('Y-m') === $bulanTerpilih->format('Y-m'))>
                             {{ $b->translatedFormat('F Y') }}
                         </option>
                     @endforeach

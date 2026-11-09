@@ -13,6 +13,7 @@ use App\Services\RekapService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
@@ -84,6 +85,7 @@ class RekapController extends Controller
 
         return $f + $hasil + [
             'kelompok'      => $kelompok,
+            'format'        => RekapService::format($f['unit']),
             'penandatangan' => $this->penandatangan($f['unit']),
             'kota'          => Pengaturan::ambil('kota_surat', 'Sleman'),
         ];
@@ -94,7 +96,8 @@ class RekapController extends Controller
         $f = $this->filter($request, 'semester');
 
         $hasil = $this->rekap->hitung(
-            $this->rekap->pegawai($f['mulai'], $f['selesai'], $f['unit']?->id, 'Guru'),
+            // PKG hanya guru unit itu sendiri (pegawai Yayasan yang ditampilkan di rekap unit tidak ikut)
+            $this->rekap->pegawai($f['mulai'], $f['selesai'], $f['unit']?->id, 'Guru', false),
             $f['mulai'],
             $f['selesai']
         );
@@ -157,16 +160,31 @@ class RekapController extends Controller
                 [$mulai, $selesai] = [$selesai, $mulai];
             }
         } else {
-            $bulan = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('bulan')) ? $request->query('bulan') : today()->format('Y-m');
-            $mulai = Carbon::createFromFormat('Y-m-d', $bulan.'-01')->startOfDay();
-            $selesai = $mulai->copy()->endOfMonth()->startOfDay();
+            // Bulanan: mengikuti tanggal awal periode unit (SD 1 = kalender; KB-TK 26 = 26 bulan lalu s.d. 25)
+            $awal = RekapService::awalPeriode($unit);
+            $bulanIni = today()->startOfMonth();
+            if ($awal > 1 && today()->day >= $awal) {
+                $bulanIni->addMonthNoOverflow(); // sudah masuk periode bulan berikutnya
+            }
+            $bulan = preg_match('/^\d{4}-\d{2}$/', (string) $request->query('bulan')) ? $request->query('bulan') : $bulanIni->format('Y-m');
+            $bulanRekap = Carbon::createFromFormat('Y-m-d', $bulan.'-01')->startOfDay();
+
+            if ($awal > 1) {
+                $mulai = $bulanRekap->copy()->subMonthNoOverflow()->day($awal);
+                $selesai = $bulanRekap->copy()->day($awal - 1);
+            } else {
+                $mulai = $bulanRekap->copy();
+                $selesai = $mulai->copy()->endOfMonth()->startOfDay();
+            }
         }
 
         $label = match ($jenis) {
             'mingguan' => 'Minggu '.$mulai->translatedFormat('j M').' – '.$selesai->translatedFormat('j M Y'),
             'semester' => "Semester {$semester->jenis} {$semester->tahun_ajaran} (".$mulai->translatedFormat('j M Y').' – '.$selesai->translatedFormat('j M Y').')',
             'rentang'  => $mulai->translatedFormat('j M Y').' – '.$selesai->translatedFormat('j M Y'),
-            default    => $mulai->translatedFormat('j').'–'.$selesai->translatedFormat('j F Y'),
+            default    => $mulai->day === 1
+                ? $mulai->translatedFormat('j').'–'.$selesai->translatedFormat('j F Y')
+                : $bulanRekap->translatedFormat('F Y').' ('.$mulai->translatedFormat('j M').' – '.$selesai->translatedFormat('j M Y').')',
         };
 
         return [
@@ -178,6 +196,7 @@ class RekapController extends Controller
             'jenis'         => $jenis,
             'mulai'         => $mulai,
             'selesai'       => $selesai,
+            'bulanRekap'    => $bulanRekap ?? $mulai->copy()->startOfMonth(),
             'label'         => $label,
         ];
     }
@@ -209,16 +228,22 @@ class RekapController extends Controller
         $buku = new Spreadsheet();
         $s = $buku->getActiveSheet()->setTitle('Rekap');
 
-        $s->setCellValue('A1', 'REKAP PRESENSI GURU DAN STAF');
-        $s->setCellValue('A2', ($d['unit']?->nama ?? 'Semua unit').' · '.$d['label']);
-        $s->setCellValue('A3', 'Data s.d. '.$d['akhir']->translatedFormat('j F Y'));
-        foreach ([1, 2, 3] as $r) {
-            $s->mergeCells("A{$r}:N{$r}");
-        }
-        $s->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        // Kolom: No, Nama, kolom format unit (config/rekap.php), KETERANGAN
+        $kolom = $d['format']['kolom'];
+        $jumlahKolom = count($kolom) + 3;
+        $huruf = fn (int $i) => Coordinate::stringFromColumnIndex($i); // 1 = A
+        $akhirKolom = $huruf($jumlahKolom);
 
-        $s->fromArray(['No', 'Nama', 'MSUK', 'DNAS', 'TLAT', 'LEMB', 'DGTI', 'PGTI', 'LJAM', 'Ekskul', 'Ekskul', 'KDLM', 'KKLR', 'KETERANGAN'], null, 'A5');
-        $s->fromArray(['', '', 'hari', 'hari', 'jam', 'jam', 'jam', 'jam', 'JP', 'jaga', 'ajar ×', 'hari', 'hari', ''], null, 'A6');
+        $s->setCellValue('A1', $d['format']['judul']);
+        $s->setCellValue('A2', $d['unit'] ? $d['format']['subjudul'] : 'SEMUA UNIT');
+        $s->setCellValue('A3', 'BULAN/PERIODE: '.$d['label'].' · data s.d. '.$d['akhir']->translatedFormat('j F Y'));
+        foreach ([1, 2, 3] as $r) {
+            $s->mergeCells("A{$r}:{$akhirKolom}{$r}");
+        }
+        $s->getStyle('A1:A2')->getFont()->setBold(true)->setSize(13);
+
+        $s->fromArray(array_merge(['No', 'Nama'], array_column($kolom, 0), ['KETERANGAN']), null, 'A5');
+        $s->fromArray(array_merge(['', ''], array_map(fn ($k) => '('.$k[1].')', $kolom), ['']), null, 'A6');
 
         $baris = 7;
         foreach (['Guru' => 'A. GURU', 'Staf' => 'B. STAF'] as $kelompok => $judul) {
@@ -228,48 +253,57 @@ class RekapController extends Controller
             }
 
             $s->setCellValue("A{$baris}", $judul);
-            $s->mergeCells("A{$baris}:N{$baris}");
+            $s->mergeCells("A{$baris}:{$akhirKolom}{$baris}");
             $s->getStyle("A{$baris}")->getFont()->setBold(true);
             $baris++;
 
             foreach ($isi as $i => $r) {
-                $s->fromArray([
-                    $i + 1, $r['user']->nama_lengkap, $r['hadir'], $r['dnas'],
-                    RekapService::jam($r['detik_terlambat']), RekapService::jamDariMenit($r['menit_lembur']),
-                    null, null, null, null, null,
-                    $r['kdlm'], $r['kklr'], $r['keterangan'] === '—' ? '-' : $r['keterangan'],
-                ], null, "A{$baris}");
+                $s->fromArray(array_merge(
+                    [$i + 1, $r['user']->nama_lengkap],
+                    array_map(fn ($k) => RekapService::nilaiAngka($r, $k[2]), $kolom),
+                    [$r['keterangan'] === '—' ? '-' : $r['keterangan']]
+                ), null, "A{$baris}");
                 $baris++;
             }
         }
         $akhirTabel = max(6, $baris - 1);
 
         // Gaya tabel
-        $s->getStyle('A5:N6')->getFont()->setBold(true);
-        $s->getStyle('A5:N6')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $s->getStyle('A5:N6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('EFE8F8');
-        $s->getStyle("G5:K{$akhirTabel}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D9D9D9'); // kolom manual
-        $s->getStyle("A5:N{$akhirTabel}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
-        $s->getStyle("C7:M{$akhirTabel}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $s->getStyle("A5:{$akhirKolom}6")->getFont()->setBold(true);
+        $s->getStyle("A5:{$akhirKolom}6")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER)->setWrapText(true);
+        $s->getStyle("A5:{$akhirKolom}6")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('EFE8F8');
+        $s->getStyle("A5:{$akhirKolom}{$akhirTabel}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        foreach ($kolom as $i => $k) {
+            $h = $huruf($i + 3);
+            $s->getColumnDimension($h)->setWidth(strlen($k[0]) > 6 ? 13 : 8);
+            $s->getStyle("{$h}7:{$h}{$akhirTabel}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            if ($k[1] === 'jam' && $k[2]) {
+                $s->getStyle("{$h}7:{$h}{$akhirTabel}")->getNumberFormat()->setFormatCode('0.0');
+            }
+            if ($k[2] === null) { // kolom diisi bagian administrasi
+                $s->getStyle("{$h}5:{$h}{$akhirTabel}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('D9D9D9');
+            }
+        }
 
-        // Blok tanda tangan
+        // Blok tanda tangan: Kepala Sekolah, Kabag Adm. Umum (validasi), Ketua Yayasan (mengetahui)
         $t = $akhirTabel + 2;
+        $kolomKabag = $huruf(max(3, intdiv($jumlahKolom, 2)));
+        $kolomKetua = $huruf($jumlahKolom - 1);
         $s->setCellValue("B{$t}", $d['kota'].', '.now()->translatedFormat('j F Y'));
-        $s->setCellValue("L{$t}", 'Mengetahui,');
+        $s->setCellValue("{$kolomKabag}{$t}", 'Divalidasi,');
+        $s->setCellValue("{$kolomKetua}{$t}", 'Mengetahui,');
         $s->setCellValue('B'.($t + 1), 'Kepala Sekolah');
-        $s->setCellValue('F'.($t + 1), 'Kabag Adm. Umum');
-        $s->setCellValue('L'.($t + 1), 'Ketua Yayasan');
+        $s->setCellValue($kolomKabag.($t + 1), 'Kabag Adm. Umum');
+        $s->setCellValue($kolomKetua.($t + 1), 'Ketua Yayasan');
         $s->setCellValue('B'.($t + 5), $d['penandatangan']['kepsek'] ?? '');
-        $s->setCellValue('F'.($t + 5), $d['penandatangan']['kabag'] ?? '');
-        $s->setCellValue('L'.($t + 5), $d['penandatangan']['ketua'] ?? '');
-        $s->getStyle('A'.($t + 5).':N'.($t + 5))->getFont()->setBold(true);
+        $s->setCellValue($kolomKabag.($t + 5), $d['penandatangan']['kabag'] ?? '');
+        $s->setCellValue($kolomKetua.($t + 5), $d['penandatangan']['ketua'] ?? '');
+        $s->getStyle('A'.($t + 5).":{$akhirKolom}".($t + 5))->getFont()->setBold(true);
 
         $s->getColumnDimension('A')->setWidth(5);
         $s->getColumnDimension('B')->setWidth(36);
-        foreach (range('C', 'M') as $kolom) {
-            $s->getColumnDimension($kolom)->setWidth(8);
-        }
-        $s->getColumnDimension('N')->setWidth(24);
+        $s->getColumnDimension($akhirKolom)->setWidth(28);
+        $s->getRowDimension(5)->setRowHeight(32);
 
         return $buku;
     }

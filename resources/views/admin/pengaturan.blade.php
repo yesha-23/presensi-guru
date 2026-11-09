@@ -17,6 +17,7 @@
         'lokasi'   => ['Lokasi', 'map-pin'],
         'presensi' => ['Presensi & wajah', 'scan-face'],
         'penyetuju' => ['Penyetuju', 'user-check'],
+        'rekap'    => ['Rekap', 'table'],
         'kop'      => ['Kop surat', 'file-text'],
     ];
 
@@ -28,6 +29,7 @@
             in_array($kunci, ['nama', 'latitude', 'longitude', 'radius_meter'], true) => 'lokasi',
             in_array($kunci, ['alamat_yayasan', 'kota_surat', 'telepon_surat', 'web_surat'], true) => 'kop',
             str_starts_with($kunci, 'penyetuju_ks') => 'penyetuju',
+            str_starts_with($kunci, 'awal_periode_rekap') || $kunci === 'pembulatan_jam_rekap' || str_starts_with($kunci, 'yayasan') => 'rekap',
             default => 'presensi',
         };
         break;
@@ -423,7 +425,101 @@
     </form>
 </div>
 
-{{-- ================= 5. KOP SURAT ================= --}}
+{{-- ================= 5. REKAP ================= --}}
+@php
+    $pilihanBulat = [
+        \App\Services\RekapService::BULAT_SETENGAH      => ['Ke 0,5 jam terdekat', 'Contoh: 1 jam 10 menit → 1; 1 jam 20 menit → 1,5.'],
+        \App\Services\RekapService::BULAT_SETENGAH_ATAS => ['Ke atas, kelipatan 0,5 jam', 'Contoh: 10 menit → 0,5; 1 jam 10 menit → 1,5.'],
+        \App\Services\RekapService::BULAT_DESIMAL       => ['1 angka desimal', 'Contoh: 1 jam 10 menit → 1,2.'],
+    ];
+    $bulatTerpilih = old('pembulatan_jam_rekap', $nilai['pembulatan_jam_rekap']);
+@endphp
+<div data-panel="rekap" class="mt-5 {{ $tabAwal === 'rekap' ? '' : 'hidden' }}">
+    <form method="POST" action="{{ route('admin.pengaturan.rekap') }}" class="{{ $kelasKartu }}">
+        @csrf @method('PUT')
+        <div class="{{ $kelasKepala }}">
+            <h2 class="font-bold">Rekap bulanan</h2>
+            <p class="text-xs text-gray-500">Periode bulanan, pembulatan jam terlambat & lembur, serta pegawai Yayasan yang ikut dicantumkan di rekap unit.</p>
+        </div>
+
+        <div class="space-y-6 p-5">
+            {{-- Periode bulanan --}}
+            <div>
+                <div class="text-sm font-bold">Tanggal awal periode bulanan</div>
+                <p class="text-xs text-gray-500">Isi 1 untuk periode kalender (1 s.d. akhir bulan). Isi 26 untuk periode 26 bulan lalu s.d. 25 (rekap "November" = 26 Oktober – 25 November).</p>
+                <div class="mt-2 grid gap-4 sm:grid-cols-2">
+                    @foreach (['SD' => 'SD', 'KBTK' => 'KB & TK'] as $kode => $namaUnit)
+                        <label class="{{ $kelasLabel }}">{{ $namaUnit }}
+                            <input type="number" min="1" max="28" name="awal_periode_rekap_{{ $kode }}"
+                                   value="{{ old('awal_periode_rekap_'.$kode, $nilai['awal_periode_rekap_'.$kode]) }}" class="{{ $kelasInput }}">
+                            @error('awal_periode_rekap_'.$kode) <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Pembulatan --}}
+            <div>
+                <div class="text-sm font-bold">Pembulatan jam terlambat & lembur</div>
+                <p class="text-xs text-gray-500">Dipakai di kolom TLAT/TLBT dan LEMB/LMBR. Total dibulatkan per pegawai per periode.</p>
+                <div class="mt-2 grid gap-2 sm:grid-cols-3">
+                    @foreach ($pilihanBulat as $mode => [$judulBulat, $contohBulat])
+                        <label class="flex cursor-pointer gap-3 rounded-xl border border-garis p-3 has-[:checked]:border-merah has-[:checked]:bg-merah-muda">
+                            <input type="radio" name="pembulatan_jam_rekap" value="{{ $mode }}" class="mt-0.5 h-4 w-4 accent-merah" @checked($bulatTerpilih === $mode)>
+                            <span>
+                                <span class="block text-sm font-semibold">{{ $judulBulat }}</span>
+                                <span class="block text-xs font-normal text-gray-500">{{ $contohBulat }}</span>
+                            </span>
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+
+            {{-- Pegawai Yayasan di rekap unit --}}
+            <div>
+                <div class="text-sm font-bold">Pegawai Yayasan di rekap unit</div>
+                <p class="text-xs text-gray-500">Pegawai unit Yayasan (mis. Kabag Adm. Umum) dapat dicantumkan di rekap SD dan/atau KB-TK. Datanya tetap satu; hanya letak namanya di rekap yang berbeda. Tidak memengaruhi Laporan PKG.</p>
+                <div class="mt-2 overflow-x-auto rounded-xl border border-garis">
+                    <table class="w-full min-w-[32rem] text-sm">
+                        <thead class="bg-krem text-left text-gray-600">
+                            <tr>
+                                <th class="px-4 py-2.5 font-semibold">Pegawai Yayasan</th>
+                                <th class="px-4 py-2.5 font-semibold">Di rekap SD</th>
+                                <th class="px-4 py-2.5 font-semibold">Di rekap KB-TK</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-garis">
+                            @forelse ($pegawaiYayasan as $py)
+                                <tr>
+                                    <td class="px-4 py-2.5">
+                                        <div class="font-semibold">{{ $py->nama_lengkap }}</div>
+                                        <div class="text-xs text-gray-500">{{ $py->jabatan ?? $py->kategori }}</div>
+                                    </td>
+                                    @foreach (['SD', 'KBTK'] as $kode)
+                                        @php $pilih = old("yayasan.{$py->id}.{$kode}", $tampilanYayasan[$py->id][$kode] ?? ''); @endphp
+                                        <td class="px-4 py-2.5">
+                                            <select name="yayasan[{{ $py->id }}][{{ $kode }}]" class="w-full rounded-lg border border-garis bg-white px-2 py-2 text-sm">
+                                                <option value="">Tidak dicantumkan</option>
+                                                <option value="Guru" @selected($pilih === 'Guru')>Kelompok A. Guru</option>
+                                                <option value="Staf" @selected($pilih === 'Staf')>Kelompok B. Staf</option>
+                                            </select>
+                                        </td>
+                                    @endforeach
+                                </tr>
+                            @empty
+                                <tr><td colspan="3" class="px-4 py-4 text-center text-gray-500">Belum ada pegawai unit Yayasan yang wajib presensi.</td></tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="{{ $kelasKaki }}"><button class="{{ $tombol }}">Simpan pengaturan rekap</button></div>
+    </form>
+</div>
+
+{{-- ================= 6. KOP SURAT ================= --}}
 <div data-panel="kop" class="mt-5 {{ $tabAwal === 'kop' ? '' : 'hidden' }}">
     <form method="POST" action="{{ route('admin.pengaturan.kop') }}" class="{{ $kelasKartu }}">
         @csrf @method('PUT')

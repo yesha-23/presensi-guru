@@ -16,34 +16,32 @@
     </style>
 </head>
 <body>
-    <h1>REKAP PRESENSI GURU DAN STAF · YAYASAN PENDIDIKAN KRISTEN TERUNA BANGSA</h1>
-    <div>{{ $unit?->nama ?? 'Semua unit' }} · {{ $label }} · data s.d. {{ $akhir->translatedFormat('j F Y') }}</div>
+    @php $R = \App\Services\RekapService::class; @endphp
+    <h1>{{ $format['judul'] }} · {{ $unit ? $format['subjudul'] : 'SEMUA UNIT' }}</h1>
+    <div>Bulan/periode: {{ $label }} · data s.d. {{ $akhir->translatedFormat('j F Y') }}</div>
 
     <table class="data">
         <thead>
             <tr>
-                <th>No</th><th>Nama</th><th>MSUK<br>hari</th><th>DNAS<br>hari</th><th>TLAT<br>jam</th><th>LEMB<br>jam</th>
-                <th class="manual">DGTI<br>jam</th><th class="manual">PGTI<br>jam</th><th class="manual">LJAM<br>JP</th>
-                <th class="manual">Ekskul<br>jaga</th><th class="manual">Ekskul<br>ajar ×</th>
-                <th>KDLM<br>hari</th><th>KKLR<br>hari</th><th>KETERANGAN</th>
+                <th>No</th><th>Nama</th>
+                @foreach ($format['kolom'] as [$judulKolom, $satuan, $isiKolom])
+                    <th class="{{ $isiKolom ? '' : 'manual' }}">{{ $judulKolom }}<br>{{ $satuan }}</th>
+                @endforeach
+                <th>KETERANGAN</th>
             </tr>
         </thead>
         <tbody>
             @foreach (['Guru' => 'A. GURU', 'Staf' => 'B. STAF'] as $kel => $judulKel)
                 @php $isi = $baris->where('kelompok', $kel)->values(); @endphp
                 @if ($isi->isNotEmpty())
-                    <tr><td colspan="14" class="kelompok">{{ $judulKel }}</td></tr>
+                    <tr><td colspan="{{ count($format['kolom']) + 3 }}" class="kelompok">{{ $judulKel }}</td></tr>
                     @foreach ($isi as $i => $r)
                         <tr>
                             <td class="tengah">{{ $i + 1 }}</td>
                             <td>{{ $r['user']->nama_lengkap }}</td>
-                            <td class="tengah">{{ $r['hadir'] }}</td>
-                            <td class="tengah">{{ $r['dnas'] }}</td>
-                            <td class="tengah">{{ \App\Services\RekapService::angka(\App\Services\RekapService::jam($r['detik_terlambat'])) }}</td>
-                            <td class="tengah">{{ \App\Services\RekapService::angka(\App\Services\RekapService::jamDariMenit($r['menit_lembur'])) }}</td>
-                            <td class="manual"></td><td class="manual"></td><td class="manual"></td><td class="manual"></td><td class="manual"></td>
-                            <td class="tengah">{{ $r['kdlm'] }}</td>
-                            <td class="tengah">{{ $r['kklr'] }}</td>
+                            @foreach ($format['kolom'] as [$judulKolom, $satuan, $isiKolom])
+                                <td class="{{ $isiKolom ? 'tengah' : 'manual' }}">{{ $R::nilaiKolom($r, $isiKolom) }}</td>
+                            @endforeach
                             <td>{{ $r['keterangan'] === '—' ? '-' : $r['keterangan'] }}</td>
                         </tr>
                     @endforeach
@@ -55,7 +53,7 @@
     <table style="width: 100%; margin-top: 18px; text-align: center; page-break-inside: avoid;">
         <tr>
             <td style="width: 33%;">{{ $kota }}, {{ now()->translatedFormat('j F Y') }}<br>Kepala Sekolah</td>
-            <td style="width: 33%;"><br>Kabag Adm. Umum</td>
+            <td style="width: 33%;">Divalidasi,<br>Kabag Adm. Umum</td>
             <td style="width: 33%;">Mengetahui,<br>Ketua Yayasan</td>
         </tr>
         <tr><td style="height: 50px;"></td><td></td><td></td></tr>
