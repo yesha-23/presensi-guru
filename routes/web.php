@@ -114,7 +114,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::get('/surat-tugas', [PegawaiController::class, 'suratTugas'])->name('surat-tugas');
 
         // Usulan surat tugas (arahan dosen: guru dapat mengusulkan surat tugas)
-        Route::get('/usulan-surat', [UsulanSuratTugasController::class, 'create'])->name('usulan-surat');
+        Route::get('/usulan-surat', [UsulanSuratTugasController::class, 'index'])->name('usulan-surat');
+        Route::get('/usulan-surat/baru', [UsulanSuratTugasController::class, 'create'])->name('usulan-surat.baru');
         Route::post('/usulan-surat', [UsulanSuratTugasController::class, 'store'])->name('usulan-surat.store');
         Route::get('/usulan-surat/{surat}/edit', [UsulanSuratTugasController::class, 'edit'])->name('usulan-surat.edit');
         Route::put('/usulan-surat/{surat}', [UsulanSuratTugasController::class, 'update'])->name('usulan-surat.update');

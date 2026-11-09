@@ -135,7 +135,7 @@
                 <div class="text-gray-500">Usulkan surat tugas dengan melampirkan undangannya. Administrator akan memproses dan mengirimkannya ke kepala sekolah.</div>
             </div>
         </div>
-        <a href="{{ route('pegawai.usulan-surat') }}"
+        <a href="{{ route('pegawai.usulan-surat.baru') }}"
            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-merah px-4 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">
             <i data-lucide="send" class="h-4 w-4"></i> Usulkan surat tugas
         </a>
