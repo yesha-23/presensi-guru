@@ -42,11 +42,72 @@ class SuratTugasService
             ->first();
     }
 
+    public function administrator(): Collection
+    {
+        return User::where('status', 'Aktif')
+            ->whereHas('roles', fn ($q) => $q->where('nama', Role::ADMIN))
+            ->get();
+    }
+
+    // ================= Usulan dari pegawai =================
+
+    /** Pegawai mengusulkan surat tugas (mis. menerima undangan langsung). Status Diajukan. */
+    public function ajukanUsulan(User $pengusul, array $data, ?string $lampiranPath): SuratTugas
+    {
+        $surat = DB::transaction(function () use ($pengusul, $data, $lampiranPath) {
+            $surat = SuratTugas::create($data + [
+                'status'        => 'Diajukan',
+                'diajukan_oleh' => $pengusul->id,
+                'lampiran_path' => $lampiranPath,
+                'kasus_khusus'  => false, // ditentukan admin saat memproses
+            ]);
+            $surat->pegawai()->sync([$pengusul->id]);
+
+            return $surat;
+        });
+
+        Notification::send($this->administrator(), new Pemberitahuan(
+            "Usulan surat tugas baru: {$surat->perihal}",
+            "Dari {$pengusul->nama_lengkap} · {$surat->rentangTanggal()}",
+            route('admin.surat-tugas.show', $surat),
+            'pengajuan'
+        ));
+
+        return $surat;
+    }
+
+    /** Admin mulai memproses usulan: pegawai tidak bisa lagi mengubah/membatalkan. */
+    public function proses(SuratTugas $surat, User $admin): void
+    {
+        $surat->update(['status' => 'Diproses', 'dibuat_oleh' => $admin->id]);
+
+        $surat->pengusul?->notify(new Pemberitahuan(
+            "Usulan surat tugas sedang diproses: {$surat->perihal}",
+            "Oleh {$admin->nama_lengkap}. Surat akan dikirim ke kepala sekolah untuk ditandatangani.",
+            route('pegawai.usulan-surat'),
+            'info'
+        ));
+    }
+
+    /** Admin menolak usulan (mis. bukan kegiatan sekolah, data tidak lengkap). */
+    public function tolakUsulan(SuratTugas $surat, User $admin, string $alasan): void
+    {
+        $surat->update(['status' => 'Ditolak', 'catatan_usulan' => $alasan, 'dibuat_oleh' => $surat->dibuat_oleh ?? $admin->id]);
+
+        $surat->pengusul?->notify(new Pemberitahuan(
+            "Usulan surat tugas ditolak: {$surat->perihal}",
+            "Oleh {$admin->nama_lengkap}. Alasan: {$alasan}",
+            route('pegawai.usulan-surat'),
+            'ditolak'
+        ));
+    }
+
     // ================= Alur persetujuan =================
 
     /** Kirim untuk persetujuan. Mengembalikan pesan galat, atau null jika berhasil. */
     public function kirim(SuratTugas $surat): ?string
     {
+        $revisi = $surat->status === 'Perlu Revisi';
         $surat->load('pegawai.unit');
 
         $kepsek = $this->kepalaSekolahUntuk($surat->pegawai);
@@ -60,7 +121,7 @@ class SuratTugasService
         }
 
         DB::transaction(function () use ($surat, $kepsek, $ketua) {
-            $surat->persetujuan()->delete(); // kirim ulang setelah ditolak: mulai dari awal
+            $surat->persetujuan()->delete(); // kirim ulang setelah revisi: persetujuan dimulai dari awal
             $surat->persetujuan()->create(['penyetuju_id' => $kepsek->id, 'urutan' => 1, 'status' => 'Menunggu']);
             if ($ketua) {
                 $surat->persetujuan()->create(['penyetuju_id' => $ketua->id, 'urutan' => 2, 'status' => 'Menunggu']);
@@ -69,7 +130,7 @@ class SuratTugasService
         });
 
         $kepsek->notify(new Pemberitahuan(
-            "Surat tugas menunggu persetujuan: {$surat->perihal}",
+            ($revisi ? 'Surat tugas hasil revisi menunggu persetujuan: ' : 'Surat tugas menunggu persetujuan: ').$surat->perihal,
             $surat->rentangTanggal().' · '.$surat->pegawai->count().' pegawai',
             route('persetujuan', ['tab' => 'surat', 'id' => $surat->id]),
             'pengajuan'
@@ -112,6 +173,21 @@ class SuratTugasService
         $this->finalisasi($surat);
     }
 
+    /** Penanda tangan meminta perbaikan: surat kembali ke admin, lalu dikirim ulang. */
+    public function mintaRevisi(SuratTugas $surat, User $penyetuju, string $catatan): void
+    {
+        $this->tahapAktif($surat)->update(['status' => 'Perlu Revisi', 'catatan' => $catatan]);
+        $surat->update(['status' => 'Perlu Revisi']);
+
+        $surat->pembuat?->notify(new Pemberitahuan(
+            "Surat tugas perlu revisi: {$surat->perihal}",
+            "Dari {$penyetuju->nama_lengkap}. Catatan: {$catatan}",
+            route('admin.surat-tugas.show', $surat),
+            'pengajuan'
+        ));
+    }
+
+    /** Ditolak final: surat tidak dapat dikirim ulang. */
     public function tolak(SuratTugas $surat, User $penyetuju, string $catatan): void
     {
         $this->tahapAktif($surat)->update(['status' => 'Ditolak', 'catatan' => $catatan]);
@@ -121,6 +197,13 @@ class SuratTugasService
             "Surat tugas ditolak: {$surat->perihal}",
             "Oleh {$penyetuju->nama_lengkap}. Catatan: {$catatan}",
             route('admin.surat-tugas.show', $surat),
+            'ditolak'
+        ));
+
+        $surat->pengusul?->notify(new Pemberitahuan(
+            "Usulan surat tugas ditolak: {$surat->perihal}",
+            "Oleh {$penyetuju->nama_lengkap}. Catatan: {$catatan}",
+            route('pegawai.usulan-surat'),
             'ditolak'
         ));
     }

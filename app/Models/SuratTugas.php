@@ -11,10 +11,19 @@ class SuratTugas extends Model
 {
     protected $table = 'surat_tugas';
 
+    /** Status yang masih dapat diubah dan dikirim oleh administrator. */
+    public const BISA_DIUBAH = ['Draf', 'Diproses', 'Perlu Revisi'];
+
+    /** Status yang dapat dihapus administrator. */
+    public const BISA_DIHAPUS = ['Draf', 'Perlu Revisi', 'Ditolak'];
+
+    /** Urutan status untuk filter. */
+    public const DAFTAR_STATUS = ['Diajukan', 'Diproses', 'Draf', 'Menunggu', 'Perlu Revisi', 'Disetujui', 'Ditolak'];
+
     protected $fillable = [
         'nomor_surat', 'perihal', 'pemberi_tugas', 'lokasi', 'jenis_kegiatan', 'sifat',
         'tanggal_mulai', 'tanggal_selesai', 'kasus_khusus', 'lampiran_path', 'pdf_path',
-        'status', 'dibuat_oleh', 'jam_mulai', 'jam_selesai', 'keterangan',
+        'status', 'dibuat_oleh', 'diajukan_oleh', 'catatan_usulan', 'jam_mulai', 'jam_selesai', 'keterangan',
     ];
 
     protected function casts(): array
@@ -41,6 +50,28 @@ class SuratTugas extends Model
         return $this->belongsTo(User::class, 'dibuat_oleh');
     }
 
+    /** Pegawai yang mengusulkan (null = dibuat langsung oleh administrator). */
+    public function pengusul(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'diajukan_oleh');
+    }
+
+    public function bisaDiubah(): bool
+    {
+        return in_array($this->status, self::BISA_DIUBAH, true);
+    }
+
+    public function bisaDihapus(): bool
+    {
+        return in_array($this->status, self::BISA_DIHAPUS, true);
+    }
+
+    /** Catatan revisi terakhir dari penanda tangan (jika status Perlu Revisi). */
+    public function catatanRevisi(): ?PersetujuanSuratTugas
+    {
+        return $this->persetujuan->firstWhere('status', 'Perlu Revisi');
+    }
+
     /** Status untuk ditampilkan: Menunggu dirinci per tahap; Disetujui yang sudah lewat = Selesai. */
     public function labelStatus(): string
     {
@@ -52,6 +83,10 @@ class SuratTugas extends Model
 
         if ($this->status === 'Disetujui' && $this->tanggal_selesai->lt(today())) {
             return 'Selesai';
+        }
+
+        if ($this->status === 'Ditolak' && $this->catatan_usulan) {
+            return 'Usulan Ditolak';
         }
 
         return $this->status;

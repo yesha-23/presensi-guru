@@ -2,8 +2,12 @@
 
 @section('konten')
 @php
-    $bisaUbah = in_array($surat->status, ['Draf', 'Ditolak'], true);
+    $bisaUbah = $surat->bisaDiubah();
     $ditolak = $surat->persetujuan->firstWhere('status', 'Ditolak');
+    $revisi = $surat->status === 'Perlu Revisi' ? $surat->catatanRevisi() : null;
+    $kelasTombolUtama = 'w-full rounded-xl bg-merah py-3 text-sm font-bold text-white hover:bg-merah-tua';
+    $kelasTombolKedua = 'w-full rounded-xl border border-red-200 bg-white py-2.5 text-sm font-semibold text-merah hover:bg-merah-muda';
+    $pesanHapus = 'Hapus surat tugas "'.$surat->perihal.'"?';
 @endphp
 
 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -19,10 +23,31 @@
 
 <div class="mt-5">@include('surat-tugas._tahapan')</div>
 
-@if ($ditolak)
+@if ($surat->pengusul)
+    <div class="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900">
+        <b>Usulan dari {{ $surat->pengusul->nama_lengkap }}</b> ({{ $surat->pengusul->unit?->label() }}),
+        diajukan {{ $surat->created_at->translatedFormat('j F Y, H.i') }}.
+        @if ($surat->status === 'Diajukan')
+            <div class="mt-1 text-xs">Periksa data dan lampiran undangan. Klik <b>Proses usulan</b> untuk mulai melengkapi (pegawai lain, luar kota, dll.), atau tolak dengan alasan.</div>
+        @endif
+    </div>
+@endif
+
+@if ($surat->status === 'Ditolak' && $surat->catatan_usulan)
+    <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
+        <b>Usulan ditolak administrator ({{ $surat->pembuat?->nama_lengkap }}).</b> Alasan: {{ $surat->catatan_usulan }}
+    </div>
+@elseif ($ditolak)
     <div class="mt-4 rounded-2xl bg-red-50 p-4 text-sm text-red-800">
         <b>Ditolak oleh {{ $ditolak->penyetuju?->nama_lengkap }}.</b> Catatan: {{ $ditolak->catatan }}
-        <div class="mt-1 text-xs">Perbaiki surat lewat tombol Ubah di daftar surat tugas, lalu kirim ulang.</div>
+        <div class="mt-1 text-xs">Penolakan bersifat final; surat ini tidak dapat dikirim ulang. Buat surat baru bila tugas tetap diperlukan.</div>
+    </div>
+@endif
+
+@if ($revisi)
+    <div class="mt-4 rounded-2xl bg-orange-50 p-4 text-sm text-orange-900">
+        <b>Perlu revisi menurut {{ $revisi->penyetuju?->nama_lengkap }}.</b> Catatan: {{ $revisi->catatan }}
+        <div class="mt-1 text-xs">Perbaiki surat lewat tombol Ubah di daftar surat tugas, lalu klik Kirim ulang.</div>
     </div>
 @endif
 
@@ -56,20 +81,44 @@
             </a>
         @endif
 
+        {{-- Usulan pegawai: proses atau tolak --}}
+        @if ($surat->status === 'Diajukan')
+            <form method="POST" action="{{ route('admin.surat-tugas.proses', $surat) }}">
+                @csrf
+                <button class="{{ $kelasTombolUtama }}">Proses usulan</button>
+            </form>
+        @endif
+
+        @if ($surat->pengusul && in_array($surat->status, ['Diajukan', 'Diproses'], true))
+            <form method="POST" action="{{ route('admin.surat-tugas.tolak-usulan', $surat) }}" class="rounded-2xl border border-garis bg-white p-4">
+                @csrf
+                <label class="block text-sm font-bold">Tolak usulan
+                    <textarea name="alasan" rows="2" maxlength="500" placeholder="Alasan penolakan (wajib)"
+                              class="mt-1 w-full rounded-xl border border-garis px-3 py-2 text-sm font-normal outline-none focus:border-navy">{{ old('alasan') }}</textarea>
+                </label>
+                @error('alasan') <p class="mt-1 text-xs text-merah">{{ $message }}</p> @enderror
+                <button class="mt-2 {{ $kelasTombolKedua }}">Tolak usulan</button>
+            </form>
+        @endif
+
         @if ($bisaUbah)
             <form method="POST" action="{{ route('admin.surat-tugas.kirim', $surat) }}">
                 @csrf
-                <button class="w-full rounded-xl bg-merah py-3 text-sm font-bold text-white hover:bg-merah-tua">
-                    {{ $surat->status === 'Ditolak' ? 'Kirim ulang ke Kepala Sekolah' : 'Kirim ke Kepala Sekolah' }}
+                <button class="{{ $kelasTombolUtama }}">
+                    {{ $surat->status === 'Perlu Revisi' ? 'Kirim ulang ke Kepala Sekolah' : 'Kirim ke Kepala Sekolah' }}
                 </button>
             </form>
+            <a href="{{ route('admin.surat-tugas') }}" class="block text-center text-xs text-gray-500">
+                Ubah isi surat lewat ikon pensil di daftar surat tugas.
+            </a>
+        @endif
+
+        @if ($surat->bisaDihapus())
             <form method="POST" action="{{ route('admin.surat-tugas.destroy', $surat) }}"
-                  onsubmit="return confirm('Hapus surat tugas ini?')">
+                  data-konfirmasi="{{ $pesanHapus }}" onsubmit="return confirm(this.dataset.konfirmasi)">
                 @csrf
                 @method('DELETE')
-                <button class="w-full rounded-xl border border-red-200 bg-white py-2.5 text-sm font-semibold text-merah hover:bg-merah-muda">
-                    Hapus surat
-                </button>
+                <button class="{{ $kelasTombolKedua }}">Hapus surat</button>
             </form>
         @endif
     </div>

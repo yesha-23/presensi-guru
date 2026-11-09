@@ -19,6 +19,18 @@
     </button>
 </div>
 
+{{-- ================= USULAN BARU DARI PEGAWAI ================= --}}
+@if ($usulanBaru > 0)
+    <a href="{{ route('admin.surat-tugas', ['status' => 'Diajukan']) }}"
+       class="mt-5 flex items-center justify-between gap-3 rounded-2xl bg-blue-50 px-4 py-3 text-sm text-blue-900 hover:bg-blue-100">
+        <span class="flex items-center gap-2">
+            <i data-lucide="inbox" class="h-4 w-4"></i>
+            <b>{{ $usulanBaru }} usulan surat tugas</b> dari pegawai menunggu diproses
+        </span>
+        <span class="font-semibold underline">Lihat</span>
+    </a>
+@endif
+
 {{-- ================= FILTER ================= --}}
 <form method="GET" class="mt-6 grid gap-3 rounded-2xl border border-garis bg-white p-4 md:grid-cols-[1fr_12rem_10rem_auto] md:items-end">
     <label class="{{ $kelasLabel }}">Cari
@@ -27,7 +39,7 @@
     <label class="{{ $kelasLabel }}">Status
         <select name="status" onchange="this.form.submit()" class="{{ $kelasInput }}">
             <option value="">Semua status</option>
-            @foreach (['Draf', 'Menunggu', 'Disetujui', 'Ditolak'] as $s)
+            @foreach (\App\Models\SuratTugas::DAFTAR_STATUS as $s)
                 <option @selected(($filter['status'] ?? '') === $s)>{{ $s }}</option>
             @endforeach
         </select>
@@ -63,7 +75,12 @@
             <tbody class="divide-y divide-garis">
                 @forelse ($surat as $s)
                     @php
-                        $bisaUbah = in_array($s->status, ['Draf', 'Ditolak'], true);
+                        $bisaUbah = $s->bisaDiubah();
+                        $judulEdit = match (true) {
+                            $bisaUbah                  => 'Ubah',
+                            $s->status === 'Diajukan'  => 'Usulan pegawai: buka detail lalu klik Proses usulan',
+                            default                    => 'Hanya draf, usulan yang diproses, atau surat yang perlu revisi yang dapat diubah',
+                        };
                         $dataJs = [
                             'id' => $s->id, 'perihal' => $s->perihal, 'pemberi_tugas' => $s->pemberi_tugas,
                             'pegawai' => $s->pegawai->pluck('id')->values(),
@@ -75,6 +92,7 @@
                             'lokasi' => $s->lokasi, 'jenis_kegiatan' => $s->jenis_kegiatan, 'sifat' => $s->sifat,
                             'kasus_khusus' => $s->kasus_khusus, 'lampiran' => (bool) $s->lampiran_path,
                             'url_update' => route('admin.surat-tugas.update', $s),
+                            'status' => $s->status,
                         ];
                         $namaPegawai = $s->pegawai->count() === 1
                             ? $s->pegawai->first()->nama_lengkap
@@ -86,8 +104,9 @@
                         <td class="px-4 py-3">
                             <div class="font-semibold">{{ $s->perihal }}</div>
                             <div class="text-xs text-gray-500">
-                                {{ $s->nomor_surat ?? ($s->status === 'Draf' ? 'Draf' : 'Nomor setelah disetujui') }}
+                                {{ $s->nomor_surat ?? (in_array($s->status, ['Draf', 'Diajukan', 'Diproses'], true) ? $s->status : 'Nomor setelah disetujui') }}
                                 @if ($s->kasus_khusus) · <span class="font-semibold text-yellow-800">Luar kota / kasus khusus</span> @endif
+                                @if ($s->pengusul) · <span class="font-semibold text-blue-800">Usulan {{ $s->pengusul->nama_lengkap }}</span> @endif
                             </div>
                         </td>
                         <td class="px-4 py-3">{{ $s->pemberi_tugas }}</td>
@@ -102,7 +121,7 @@
                                 </a>
                                 <button type="button" data-edit data-id="{{ $s->id }}" data-surat='@json($dataJs)' @disabled(! $bisaUbah)
                                         class="rounded-lg border border-garis p-2 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-30"
-                                        title="{{ $bisaUbah ? 'Ubah' : 'Hanya draf atau surat ditolak yang dapat diubah' }}">
+                                        title="{{ $judulEdit }}">
                                     <i data-lucide="pencil" class="h-4 w-4"></i>
                                 </button>
                             </div>
@@ -232,7 +251,7 @@
 
         <div class="flex flex-wrap justify-end gap-2 border-t border-garis bg-krem/50 px-6 py-4">
             <button type="button" data-tutup-modal class="rounded-xl border border-garis bg-white px-5 py-2.5 text-sm font-semibold">Batal</button>
-            <button type="submit" name="aksi" value="draf" class="rounded-xl border border-garis bg-white px-5 py-2.5 text-sm font-semibold">Simpan draf</button>
+            <button type="submit" name="aksi" value="draf" id="tombol-simpan" class="rounded-xl border border-garis bg-white px-5 py-2.5 text-sm font-semibold">Simpan draf</button>
             <button type="submit" name="aksi" value="kirim" class="rounded-xl bg-merah px-5 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">Kirim ke Kepala Sekolah</button>
         </div>
     </form>
@@ -320,6 +339,8 @@
         form.elements['_method'].value = tambah ? 'POST' : 'PUT';
         form.elements['_id'].value = data?.id ?? '';
         document.getElementById('judul-modal').textContent = tambah ? 'Terbitkan surat tugas' : 'Ubah surat tugas';
+        // Draf disimpan sebagai draf; usulan yang diproses / surat perlu revisi disimpan tanpa mengubah status
+        document.getElementById('tombol-simpan').textContent = tambah || data?.status === 'Draf' ? 'Simpan draf' : 'Simpan perubahan';
     }
 
     function isi(data) {

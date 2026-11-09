@@ -126,6 +126,21 @@
 @else
     {{-- ================= TAB SURAT TUGAS ================= --}}
 
+    {{-- Usulan surat tugas oleh pegawai --}}
+    <div class="mt-6 flex flex-col gap-3 rounded-2xl border border-garis bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-start gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-krem text-merah"><i data-lucide="file-plus" class="h-5 w-5"></i></span>
+            <div class="text-sm leading-snug">
+                <div class="font-semibold">Menerima undangan atau tugas langsung?</div>
+                <div class="text-gray-500">Usulkan surat tugas dengan melampirkan undangannya. Administrator akan memproses dan mengirimkannya ke kepala sekolah.</div>
+            </div>
+        </div>
+        <a href="{{ route('pegawai.usulan-surat') }}"
+           class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-merah px-4 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">
+            <i data-lucide="send" class="h-4 w-4"></i> Usulkan surat tugas
+        </a>
+    </div>
+
     {{-- ---------- Bagian 1: berlangsung & akan datang (kartu) ---------- --}}
     <h2 class="mt-6 font-bold">
         Berlangsung &amp; akan datang

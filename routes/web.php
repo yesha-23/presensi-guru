@@ -22,6 +22,7 @@ use App\Http\Controllers\Admin\DataPresensiController;
 use App\Http\Controllers\RekapController;
 use App\Http\Controllers\Admin\PengaturanController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\UsulanSuratTugasController;
 use App\Http\Controllers\Admin\PengajuanController as AdminPengajuanController;
 
 // ================= PUBLIK =================
@@ -70,6 +71,7 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::post('/persetujuan/lembur/{lembur}/tolak', [PersetujuanController::class, 'tolakLembur'])->name('persetujuan.lembur.tolak');
         Route::post('/persetujuan/surat/{surat}/setujui', [PersetujuanController::class, 'setujuiSurat'])->name('persetujuan.surat.setujui');
         Route::post('/persetujuan/surat/{surat}/tolak', [PersetujuanController::class, 'tolakSurat'])->name('persetujuan.surat.tolak');
+        Route::post('/persetujuan/surat/{surat}/revisi', [PersetujuanController::class, 'revisiSurat'])->name('persetujuan.surat.revisi');
         Route::post('/persetujuan/koreksi/{log}/setujui', [PersetujuanController::class, 'setujuiKoreksi'])->name('persetujuan.koreksi.setujui');
         Route::post('/persetujuan/koreksi/{log}/tolak', [PersetujuanController::class, 'tolakKoreksi'])->name('persetujuan.koreksi.tolak');
 
@@ -110,6 +112,13 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::delete('/lembur/{lembur}', [LemburController::class, 'batal'])->name('lembur.batal');
 
         Route::get('/surat-tugas', [PegawaiController::class, 'suratTugas'])->name('surat-tugas');
+
+        // Usulan surat tugas (arahan dosen: guru dapat mengusulkan surat tugas)
+        Route::get('/usulan-surat', [UsulanSuratTugasController::class, 'create'])->name('usulan-surat');
+        Route::post('/usulan-surat', [UsulanSuratTugasController::class, 'store'])->name('usulan-surat.store');
+        Route::get('/usulan-surat/{surat}/edit', [UsulanSuratTugasController::class, 'edit'])->name('usulan-surat.edit');
+        Route::put('/usulan-surat/{surat}', [UsulanSuratTugasController::class, 'update'])->name('usulan-surat.update');
+        Route::delete('/usulan-surat/{surat}', [UsulanSuratTugasController::class, 'batal'])->name('usulan-surat.batal');
     });
 
     // ---------- Administrator ----------
@@ -173,6 +182,8 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
         Route::get('/surat-tugas/{surat}', [SuratTugasController::class, 'show'])->name('surat-tugas.show');
         Route::put('/surat-tugas/{surat}', [SuratTugasController::class, 'update'])->name('surat-tugas.update');
         Route::post('/surat-tugas/{surat}/kirim', [SuratTugasController::class, 'kirim'])->name('surat-tugas.kirim');
+        Route::post('/surat-tugas/{surat}/proses', [SuratTugasController::class, 'proses'])->name('surat-tugas.proses');
+        Route::post('/surat-tugas/{surat}/tolak-usulan', [SuratTugasController::class, 'tolakUsulan'])->name('surat-tugas.tolak-usulan');
         Route::delete('/surat-tugas/{surat}', [SuratTugasController::class, 'destroy'])->name('surat-tugas.destroy');
     });
 

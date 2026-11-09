@@ -1,11 +1,35 @@
 @php
-    $tahap = collect([[
-        'judul'  => 'Dibuat administrator',
-        'ket'    => ($surat->pembuat?->nama_lengkap ?? '-').' · '.$surat->created_at->translatedFormat('j M Y'),
-        'status' => 'Disetujui',
-    ]]);
+    $tahap = collect();
 
-    if ($surat->persetujuan->isEmpty()) {
+    if ($surat->diajukan_oleh) {
+        // Usulan dari pegawai: diusulkan -> diproses administrator
+        $tahap->push([
+            'judul'  => 'Diusulkan pegawai',
+            'ket'    => ($surat->pengusul?->nama_lengkap ?? '-').' · '.$surat->created_at->translatedFormat('j M Y'),
+            'status' => 'Disetujui',
+        ]);
+        $tahap->push([
+            'judul'  => 'Diproses administrator',
+            'ket'    => match (true) {
+                $surat->status === 'Diajukan'                           => 'Belum diproses',
+                $surat->status === 'Ditolak' && $surat->catatan_usulan  => ($surat->pembuat?->nama_lengkap ?? '-').' · usulan ditolak',
+                default                                                 => $surat->pembuat?->nama_lengkap ?? '-',
+            },
+            'status' => match (true) {
+                $surat->status === 'Diajukan'                           => 'Menunggu',
+                $surat->status === 'Ditolak' && $surat->catatan_usulan  => 'Ditolak',
+                default                                                 => 'Disetujui',
+            },
+        ]);
+    } else {
+        $tahap->push([
+            'judul'  => 'Dibuat administrator',
+            'ket'    => ($surat->pembuat?->nama_lengkap ?? '-').' · '.$surat->created_at->translatedFormat('j M Y'),
+            'status' => 'Disetujui',
+        ]);
+    }
+
+    if ($surat->persetujuan->isEmpty() && ! $surat->catatan_usulan) {
         $tahap->push(['judul' => 'Kepala Sekolah', 'ket' => 'Belum dikirim', 'status' => 'Draf']);
     }
 
@@ -13,15 +37,20 @@
         $tahap->push([
             'judul'  => $p->urutan === 1 ? 'Kepala Sekolah' : 'Ketua Yayasan',
             'ket'    => ($p->penyetuju?->nama_lengkap ?? '-').' · '.match ($p->status) {
-                'Disetujui' => 'ditandatangani '.$p->ditandatangani_at?->translatedFormat('j M'),
-                'Ditolak'   => 'ditolak',
-                default     => 'menunggu',
+                'Disetujui'    => 'ditandatangani '.$p->ditandatangani_at?->translatedFormat('j M'),
+                'Ditolak'      => 'ditolak',
+                'Perlu Revisi' => 'meminta revisi',
+                default        => 'menunggu',
             },
             'status' => $p->status,
         ]);
     }
 
-    $kolom = $tahap->count() >= 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2';
+    $kolom = match (true) {
+        $tahap->count() >= 4 => 'sm:grid-cols-2 xl:grid-cols-4',
+        $tahap->count() === 3 => 'sm:grid-cols-3',
+        default               => 'sm:grid-cols-2',
+    };
 @endphp
 
 <div class="grid gap-4 rounded-2xl border border-garis bg-white p-4 {{ $kolom }}">
@@ -31,6 +60,8 @@
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-800"><i data-lucide="check" class="h-4 w-4"></i></span>
             @elseif ($t['status'] === 'Ditolak')
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-800"><i data-lucide="x" class="h-4 w-4"></i></span>
+            @elseif ($t['status'] === 'Perlu Revisi')
+                <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-800"><i data-lucide="rotate-ccw" class="h-4 w-4"></i></span>
             @elseif ($t['status'] === 'Menunggu')
                 <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-kuning text-gray-900"><i data-lucide="pen-line" class="h-4 w-4"></i></span>
             @else
