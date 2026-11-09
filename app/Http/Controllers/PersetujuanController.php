@@ -236,7 +236,24 @@ class PersetujuanController extends Controller
         $layanan->tolak($surat, $request->user(), $request->input('catatan'));
 
         return redirect()->route('persetujuan', ['tab' => 'surat'])
-            ->with('sukses', 'Surat tugas ditolak dan dikembalikan ke administrator.');
+            ->with('sukses', 'Surat tugas ditolak (final). Administrator dan pengusul sudah diberi tahu.');
+    }
+
+    public function revisiSurat(Request $request, SuratTugas $surat, SuratTugasService $layanan)
+    {
+        abort_unless($layanan->bolehMemproses($request->user(), $surat), 403, 'Surat tugas ini bukan wewenang Anda atau sudah diproses.');
+
+        $request->validate([
+            'catatan' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'catatan.required' => 'Catatan revisi wajib diisi.',
+            'catatan.min'      => 'Catatan revisi minimal 5 karakter.',
+        ]);
+
+        $layanan->mintaRevisi($surat, $request->user(), $request->input('catatan'));
+
+        return redirect()->route('persetujuan', ['tab' => 'surat'])
+            ->with('sukses', 'Surat tugas dikembalikan ke administrator untuk direvisi.');
     }
 
     // ================= Koreksi presensi admin =================

@@ -71,9 +71,9 @@
                         @endif
                     </div>
 
-                    <form method="POST" action="{{ route('persetujuan.surat.tolak', $suratDipilih) }}" class="rounded-2xl border border-garis bg-white p-5">
+                    <form method="POST" action="{{ route('persetujuan.surat.revisi', $suratDipilih) }}" class="rounded-2xl border border-garis bg-white p-5">
                         @csrf
-                        <label class="block text-sm font-bold">Catatan <span class="font-normal text-gray-500">(wajib jika ditolak)</span>
+                        <label class="block text-sm font-bold">Catatan <span class="font-normal text-gray-500">(wajib untuk revisi atau penolakan)</span>
                             <textarea name="catatan" rows="3" maxlength="500"
                                       class="mt-1 w-full rounded-xl border border-garis px-3 py-2.5 text-sm font-normal outline-none focus:border-navy">{{ old('catatan') }}</textarea>
                         </label>
@@ -88,10 +88,20 @@
                                     class="flex items-center justify-center gap-2 rounded-xl bg-merah py-3 font-semibold text-white hover:bg-merah-tua">
                                 <i data-lucide="pen-line" class="h-4 w-4"></i> Setujui & tanda tangani
                             </button>
-                            <button type="submit" formaction="{{ route('persetujuan.surat.tolak', $suratDipilih) }}"
-                                    class="rounded-xl border border-merah bg-white py-2.5 font-semibold text-merah hover:bg-merah-muda">
-                                Tolak
+                            <button type="submit" formaction="{{ route('persetujuan.surat.revisi', $suratDipilih) }}"
+                                    class="flex items-center justify-center gap-2 rounded-xl border border-orange-300 bg-white py-2.5 font-semibold text-orange-800 hover:bg-orange-50">
+                                <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Minta revisi ke administrator
                             </button>
+                            <button type="submit" formaction="{{ route('persetujuan.surat.tolak', $suratDipilih) }}"
+                                    data-konfirmasi="Tolak surat tugas ini secara final? Surat tidak dapat dikirim ulang."
+                                    onclick="return confirm(this.dataset.konfirmasi)"
+                                    class="rounded-xl border border-merah bg-white py-2.5 font-semibold text-merah hover:bg-merah-muda">
+                                Tolak (final)
+                            </button>
+                            <p class="text-xs text-gray-500">
+                                <b>Minta revisi</b>: surat dikembalikan ke administrator untuk diperbaiki lalu dikirim ulang.
+                                <b>Tolak</b>: surat tidak diterbitkan.
+                            </p>
                         </div>
                     </form>
                 </div>

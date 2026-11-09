@@ -25,7 +25,7 @@ class SuratTugasController extends Controller
     {
         $filter = $request->only(['cari', 'status', 'jenis']);
 
-        $surat = SuratTugas::with(['pegawai', 'persetujuan'])
+        $surat = SuratTugas::with(['pegawai', 'persetujuan', 'pengusul'])
             ->when($filter['cari'] ?? null, function ($q, $cari) {
                 $q->where(fn ($q) => $q
                     ->where('perihal', 'like', "%{$cari}%")
@@ -50,6 +50,7 @@ class SuratTugasController extends Controller
             'surat'          => $surat,
             'filter'         => $filter,
             'pilihanPegawai' => $pilihanPegawai,
+            'usulanBaru'     => SuratTugas::where('status', 'Diajukan')->count(),
         ]);
     }
 
@@ -73,7 +74,7 @@ class SuratTugasController extends Controller
 
     public function show(SuratTugas $surat)
     {
-        $surat->load(['pegawai.unit', 'persetujuan.penyetuju', 'pembuat']);
+        $surat->load(['pegawai.unit', 'persetujuan.penyetuju', 'pembuat', 'pengusul.unit']);
 
         return view('admin.surat-tugas.show', [
             'judul'     => 'Detail Surat Tugas',
@@ -104,7 +105,36 @@ class SuratTugasController extends Controller
         return $this->setelahSimpan($request, $surat->refresh());
     }
 
-    /** Kirim draf / kirim ulang surat yang ditolak. */
+    /** Mulai memproses usulan pegawai (Diajukan -> Diproses). */
+    public function proses(Request $request, SuratTugas $surat)
+    {
+        abort_unless($surat->status === 'Diajukan', 403, 'Usulan ini sudah diproses atau dibatalkan pengusul.');
+
+        $this->layanan->proses($surat, $request->user());
+
+        return redirect()->route('admin.surat-tugas.show', $surat)
+            ->with('sukses', 'Usulan diproses. Periksa dan lengkapi data (pegawai lain, luar kota, dll.) lewat tombol Ubah, lalu kirim ke kepala sekolah.');
+    }
+
+    /** Tolak usulan pegawai dengan alasan. */
+    public function tolakUsulan(Request $request, SuratTugas $surat)
+    {
+        abort_unless(in_array($surat->status, ['Diajukan', 'Diproses'], true) && $surat->diajukan_oleh, 403, 'Usulan ini tidak dapat ditolak.');
+
+        $data = $request->validate([
+            'alasan' => ['required', 'string', 'min:5', 'max:500'],
+        ], [
+            'alasan.required' => 'Alasan penolakan usulan wajib diisi.',
+            'alasan.min'      => 'Alasan penolakan minimal 5 karakter.',
+        ]);
+
+        $this->layanan->tolakUsulan($surat, $request->user(), $data['alasan']);
+
+        return redirect()->route('admin.surat-tugas')
+            ->with('sukses', "Usulan \"{$surat->perihal}\" ditolak. Pengusul sudah diberi tahu.");
+    }
+
+    /** Kirim draf / usulan yang sudah diproses / surat hasil revisi. */
     public function kirim(SuratTugas $surat)
     {
         $this->pastikanBisaDiubah($surat);
@@ -119,7 +149,7 @@ class SuratTugasController extends Controller
 
     public function destroy(SuratTugas $surat)
     {
-        $this->pastikanBisaDiubah($surat);
+        abort_unless($surat->bisaDihapus(), 403, 'Hanya draf, surat yang perlu revisi, atau surat yang ditolak yang dapat dihapus.');
 
         if ($surat->lampiran_path) {
             Storage::delete($surat->lampiran_path);
@@ -143,15 +173,15 @@ class SuratTugasController extends Controller
         }
 
         return redirect()->route('admin.surat-tugas')
-            ->with('sukses', "Draf surat tugas \"{$surat->perihal}\" disimpan.");
+            ->with('sukses', ($surat->status === 'Draf' ? 'Draf surat tugas' : 'Perubahan surat tugas')." \"{$surat->perihal}\" disimpan.");
     }
 
     private function pastikanBisaDiubah(SuratTugas $surat): void
     {
         abort_unless(
-            in_array($surat->status, ['Draf', 'Ditolak'], true),
+            $surat->bisaDiubah(),
             403,
-            'Surat yang sedang diproses atau sudah disetujui tidak dapat diubah.'
+            'Hanya draf, usulan yang sedang diproses, atau surat yang perlu revisi yang dapat diubah dan dikirim.'
         );
     }
 

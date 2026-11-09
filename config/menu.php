@@ -33,7 +33,8 @@ return [
         ['label' => 'Presensi',  'route' => 'presensi.scan',     'ikon' => 'scan-face'],
         ['label' => 'Pengajuan', 'route' => 'pegawai.pengajuan', 'ikon' => 'file-plus-2',
             'aktif' => ['pegawai.izin*', 'pegawai.lembur*']],
-        ['label' => 'Riwayat',   'route' => 'pegawai.riwayat',   'ikon' => 'list'],
+        ['label' => 'Riwayat',   'route' => 'pegawai.riwayat',   'ikon' => 'list',
+            'aktif' => ['pegawai.usulan-surat*']],
         ['label' => 'Profil',    'route' => 'pegawai.profil',    'ikon' => 'user'],
     ],
 
@@ -42,6 +43,7 @@ return [
         ['label' => 'Beranda saya',   'route' => 'pegawai.beranda',   'ikon' => 'house'],
         ['label' => 'Pengajuan saya', 'route' => 'pegawai.pengajuan', 'ikon' => 'file-plus-2',
             'aktif' => ['pegawai.izin*', 'pegawai.lembur*']],
-        ['label' => 'Riwayat saya',   'route' => 'pegawai.riwayat',   'ikon' => 'list'],
+        ['label' => 'Riwayat saya',   'route' => 'pegawai.riwayat',   'ikon' => 'list',
+            'aktif' => ['pegawai.usulan-surat*']],
     ],
 ];
