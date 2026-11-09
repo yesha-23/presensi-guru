@@ -59,6 +59,9 @@ class MasterDataSeeder extends Seeder
             'sesi_otomatis_menit'  => '5',
             'batas_presensi_datang' => '12:00', // lewat jam ini presensi datang dicatat "Lewat Batas" atau ditolak
             'mode_lewat_batas'     => 'catat', // catat = berlabel Lewat Batas (tetap Hadir); tolak = presensi ditolak
+            'awal_periode_rekap_SD'   => '1',  // rekap bulanan SD: tanggal 1 s.d. akhir bulan
+            'awal_periode_rekap_KBTK' => '26', // rekap bulanan KB-TK: 26 bulan lalu s.d. 25 (periode payroll)
+            'pembulatan_jam_rekap'    => 'setengah', // TLAT/LEMB dibulatkan ke 0,5 jam terdekat
             'alamat_yayasan'       => 'Villa Seturan Indah, Gg. Apokat Jl. Seturan Raya No.10 Blk D, RT.12/RW.01, Kledokan, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281',
             'kota_surat'           => 'Sleman',
             'telepon_surat'        => 'Telp. (0274) 487069, WA Official: 0812 1204 0005',
