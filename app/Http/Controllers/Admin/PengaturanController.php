@@ -48,7 +48,7 @@ class PengaturanController extends Controller
                 'kota_surat'            => $nilai('kota_surat', 'Sleman'),
                 'telepon_surat'         => $nilai('telepon_surat', ''),
                 'web_surat'             => $nilai('web_surat', ''),
-                'awal_periode_rekap_SD'   => (int) $nilai('awal_periode_rekap_SD', 1),
+                'awal_periode_rekap_SD'   => (int) $nilai('awal_periode_rekap_SD', 26),
                 'awal_periode_rekap_KBTK' => (int) $nilai('awal_periode_rekap_KBTK', 26),
                 'pembulatan_jam_rekap'    => $nilai('pembulatan_jam_rekap', RekapService::BULAT_SETENGAH),
             ],

@@ -25,14 +25,19 @@ class RekapService
 
     // ================= Pengaturan rekap =================
 
-    /** Tanggal awal periode bulanan unit (1 = kalender; 26 = periode 26 bulan lalu s.d. 25). */
+    /**
+     * Tanggal awal periode bulanan unit.
+     * SD dan KB-TK sama-sama memakai periode payroll: tanggal 26 bulan lalu s.d. 25
+     * (dikonfirmasi 17 Nov 2026). Nilai tetap dapat diubah per unit di halaman Pengaturan.
+     * Rekap tanpa unit (semua unit) juga memakai 26 agar sejajar dengan kedua unit.
+     */
     public static function awalPeriode(?Unit $unit): int
     {
-        if (! $unit || ! in_array($unit->kode, ['SD', 'KBTK'], true)) {
-            return 1;
-        }
+        $bawaan = 26;
 
-        $bawaan = $unit->kode === 'KBTK' ? 26 : 1;
+        if (! $unit || ! in_array($unit->kode, ['SD', 'KBTK'], true)) {
+            return $bawaan;
+        }
 
         return max(1, min(28, (int) Pengaturan::ambil('awal_periode_rekap_'.$unit->kode, $bawaan)));
     }
