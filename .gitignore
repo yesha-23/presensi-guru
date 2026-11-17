@@ -22,3 +22,12 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# File bantu lokal (data asli pegawai & dump, jangan diunggah)
+database/seeders/PegawaiTerunaBangsaSeeder.php
+database/seeders/PresensiDummySeeder.php
+database/seeders/CekKunciRekapSeeder.php
+database/seeders/data/
+migrasi.txt
+pengaturan.txt
+tabel.txt
