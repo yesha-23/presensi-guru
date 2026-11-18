@@ -16,8 +16,10 @@
     $ketua = $penandatangan->firstWhere('jabatan', 'Ketua Yayasan');
 
     $sans = "font-family: 'DejaVu Sans', Arial, sans-serif;";
-    $sel = 'border: 1px solid #333; padding: 5px 7px; vertical-align: middle;';
-    $th = $sel.' background: #efe8f8; font-weight: bold; text-align: center; font-size: 9pt;';
+    // Tabel memakai table-layout: fixed agar total lebar tidak melebihi area tulis A4 (21 - 4,4 - 1,8 = 14,8 cm)
+    $sel = 'border: 1px solid #333; padding: 4px 5px; vertical-align: middle; word-wrap: break-word;';
+    $th = $sel.' background: #efe8f8; font-weight: bold; text-align: center; font-size: 8.5pt;';
+    $tabel = 'width: 100%; border-collapse: collapse; table-layout: fixed;';
 @endphp
 
 <div style="{{ $modePdf ? '' : 'position: relative; width: 21cm; min-height: 29.7cm; padding: 1.3cm 1.8cm 1.6cm 4.4cm; box-sizing: border-box; background: #fff; margin: 0 auto;' }}
@@ -50,9 +52,9 @@
     <div style="border-top: 0.75px solid {{ $ungu }}; margin-top: 2px;"></div>
 
     {{-- ================= TANGGAL & NOMOR ================= --}}
-    <p style="text-align: right; margin: 14px 0 10px;">{{ $kota }}, {{ $tanggalTerbit->translatedFormat('j F Y') }}</p>
+    <p style="text-align: right; margin: 10px 0 8px;">{{ $kota }}, {{ $tanggalTerbit->translatedFormat('j F Y') }}</p>
 
-    <table style="border-collapse: collapse; margin-bottom: 14px;">
+    <table style="border-collapse: collapse; margin-bottom: 10px;">
         <tr><td style="width: 1.5cm; padding: 0;">No</td><td style="padding: 0;">: {{ $surat->nomor_surat ?? '(diterbitkan setelah disetujui)' }}</td></tr>
         <tr><td style="padding: 0;">Hal</td><td style="padding: 0;">: <b>Surat Tugas</b></td></tr>
         <tr><td style="padding: 0;">Lamp</td><td style="padding: 0;">: {{ $surat->lampiran_path ? '1 (satu) berkas' : '-' }}</td></tr>
@@ -67,13 +69,13 @@
     </p>
 
     {{-- ================= PEGAWAI ================= --}}
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 12px;">
+    <table style="{{ $tabel }} margin-bottom: 12px; font-size: 9.5pt;">
         <thead>
             <tr>
-                <th style="{{ $th }} width: 0.9cm;">NO</th>
+                <th style="{{ $th }} width: 0.8cm;">NO</th>
                 <th style="{{ $th }}">NAMA</th>
-                <th style="{{ $th }} width: 3.6cm;">NIP</th>
-                <th style="{{ $th }} width: 4.6cm;">JABATAN / UNIT</th>
+                <th style="{{ $th }} width: 2.8cm;">NIP</th>
+                <th style="{{ $th }} width: 3.8cm;">JABATAN / UNIT</th>
             </tr>
         </thead>
         <tbody>
@@ -95,15 +97,16 @@
     <p style="margin: 0 0 8px;">untuk melaksanakan tugas sebagai berikut:</p>
 
     {{-- ================= TUGAS ================= --}}
-    <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px;">
+    {{-- Lebar isi kolom: 0,7 + 2,3 + 1,8 + KEGIATAN (sisa, ±2,9) + 2,3 + 2,6 cm; padding sel menambah ±0,35 cm per kolom --}}
+    <table style="{{ $tabel }} margin-bottom: 10px; font-size: 9pt;">
         <thead>
             <tr>
-                <th style="{{ $th }} width: 0.8cm;">NO</th>
-                <th style="{{ $th }} width: 2.9cm;">HARI/TANGGAL</th>
-                <th style="{{ $th }} width: 2.2cm;">WAKTU</th>
+                <th style="{{ $th }} width: 0.7cm;">NO</th>
+                <th style="{{ $th }} width: 2.3cm;">HARI/ TANGGAL</th>
+                <th style="{{ $th }} width: 1.8cm;">WAKTU</th>
                 <th style="{{ $th }}">KEGIATAN</th>
-                <th style="{{ $th }} width: 2.7cm;">TEMPAT</th>
-                <th style="{{ $th }} width: 3.6cm;">KETERANGAN</th>
+                <th style="{{ $th }} width: 2.3cm;">TEMPAT</th>
+                <th style="{{ $th }} width: 2.6cm;">KETERANGAN</th>
             </tr>
         </thead>
         <tbody>
@@ -113,7 +116,7 @@
                 <td style="{{ $sel }} text-align: center;">{{ $surat->rentangJam() }}</td>
                 <td style="{{ $sel }} text-align: center;"><b>{{ $surat->perihal }}</b></td>
                 <td style="{{ $sel }} text-align: center;">{{ $surat->lokasi }}</td>
-                <td style="{{ $sel }} font-size: 9pt;">
+                <td style="{{ $sel }} font-size: 8.5pt;">
                     @forelse ($surat->poinKeterangan() as $poin)
                         -{{ $poin }}@if (! $loop->last)<br>@endif
                     @empty
@@ -136,17 +139,17 @@
     </p>
 
     {{-- ================= TANDA TANGAN ================= --}}
-    <table style="width: 100%; margin-top: 22px; page-break-inside: avoid;">
+    <table style="width: 100%; margin-top: 14px; page-break-inside: avoid;">
         <tr>
             <td style="width: 50%; text-align: center; vertical-align: top;">
                 @if ($ketua)
                     <div>Mengetahui,</div>
                     <div>Ketua Yayasan</div>
-                    <div style="height: 2.2cm; margin: 4px 0;">
+                    <div style="height: 1.9cm; margin: 2px 0;">
                         @if ($ketua['ttd'])
-                            <img src="{{ $ketua['ttd'] }}" alt="" style="height: 2.1cm; display: inline-block;">
+                            <img src="{{ $ketua['ttd'] }}" alt="" style="height: 1.8cm; display: inline-block;">
                         @else
-                            <div style="padding-top: 0.9cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
+                            <div style="padding-top: 0.75cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
                         @endif
                     </div>
                     <div>{{ $ketua['nama'] ?? '..............................' }}</div>
@@ -155,11 +158,11 @@
             <td style="width: 50%; text-align: center; vertical-align: top;">
                 <div>&nbsp;</div>
                 <div>Kepala Sekolah</div>
-                <div style="height: 2.2cm; margin: 4px 0;">
+                <div style="height: 1.9cm; margin: 2px 0;">
                     @if ($kepsek['ttd'] ?? null)
-                        <img src="{{ $kepsek['ttd'] }}" alt="" style="height: 2.1cm; display: inline-block;">
+                        <img src="{{ $kepsek['ttd'] }}" alt="" style="height: 1.8cm; display: inline-block;">
                     @else
-                        <div style="padding-top: 0.9cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
+                        <div style="padding-top: 0.75cm; color: #999; font-size: 8pt;">Belum ditandatangani</div>
                     @endif
                 </div>
                 <div>{{ $kepsek['nama'] ?? '..............................' }}</div>
@@ -168,7 +171,7 @@
     </table>
 
     {{-- ================= TEMBUSAN ================= --}}
-    <div style="margin-top: 24px; font-size: 9.5pt; page-break-inside: avoid;">
+    <div style="margin-top: 12px; font-size: 9pt; page-break-inside: avoid;">
         Tembusan:
         <ol style="margin: 2px 0 0 18px; padding: 0;">
             @unless ($ketua)
