@@ -4,30 +4,23 @@
 @php
     use App\Models\Presensi;
     $efektif = $unit ? ($efektifUnit[$unit->id] ?? 0) : null;
+    $th = 'sticky top-0 z-20 bg-krem px-3 py-3 font-semibold';
 @endphp
 
-<div class="flex flex-wrap items-start justify-between gap-4">
-    <div>
-        <h1 class="text-2xl font-extrabold lg:text-3xl">Laporan Presensi untuk PKG</h1>
-        <p class="text-sm text-gray-500">
-            Bahan pendukung penilaian kinerja guru, bukan nilai akhir PKG
-            · data s.d. {{ $akhir->lt($mulai) ? '–' : $akhir->translatedFormat('j F Y') }}
-            · {{ $efektif !== null ? $efektif.' hari efektif' : 'hari efektif per unit' }}
-        </p>
-    </div>
-    <div class="flex gap-2">
-        <a href="{{ route('pkg.excel', request()->query()) }}"
-           class="inline-flex items-center gap-2 rounded-xl border border-garis bg-white px-4 py-2.5 text-sm font-semibold hover:bg-gray-50">
-            <i data-lucide="download" class="h-4 w-4"></i> Unduh Excel
-        </a>
-        <a href="{{ route('pkg.pdf', request()->query()) }}"
-           class="inline-flex items-center gap-2 rounded-xl bg-merah px-4 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">
-            <i data-lucide="download" class="h-4 w-4"></i> Unduh PDF
-        </a>
-    </div>
+<div>
+    <h1 class="text-2xl font-extrabold lg:text-3xl">Laporan Presensi untuk PKG</h1>
+    <p class="text-sm text-gray-500">
+        {{ $label }}
+        · {{ $efektif !== null ? $efektif.' hari efektif' : 'hari efektif per unit' }}
+        · data s.d. {{ $akhir->lt($mulai) ? '–' : $akhir->translatedFormat('j F Y') }}
+    </p>
+    <p class="text-xs text-gray-400">Bahan pendukung penilaian kinerja guru, bukan nilai akhir PKG.</p>
 </div>
 
-@include('rekap._tab')
+@include('rekap._tab', ['unduh' => [
+    ['Unduh PDF', 'PDF', route('pkg.pdf', request()->query()), true],
+    ['Unduh Excel', 'Excel', route('pkg.excel', request()->query()), false],
+]])
 @include('rekap._filter', ['modePkg' => true, 'kelompok' => 'Guru'])
 
 {{-- Perbandingan antarunit (UR-27): satu baris di laptop --}}
@@ -59,26 +52,31 @@
     </div>
 @endif
 
-<div class="mt-4 overflow-hidden rounded-2xl border border-garis bg-white">
-    <div class="overflow-x-auto">
-        <table class="w-full min-w-[56rem] text-sm">
-            <thead class="bg-krem text-gray-600">
+<div class="mt-4">
+    @include('rekap._cari', ['tabel' => 'tabel-pkg'])
+</div>
+
+<div class="mt-2 overflow-hidden rounded-2xl border border-garis bg-white">
+    {{-- Area gulir sendiri: judul kolom tetap di atas, nama guru tetap di kiri --}}
+    <div class="max-h-[70vh] overflow-auto">
+        <table id="tabel-pkg" class="w-full min-w-[56rem] text-sm">
+            <thead class="text-gray-600">
                 <tr>
-                    <th class="px-4 py-3 text-left font-semibold">Guru</th>
-                    <th class="px-3 py-3 font-semibold">Hadir</th>
-                    <th class="px-3 py-3 font-semibold">Tugas khusus</th>
-                    <th class="px-3 py-3 font-semibold">Izin</th>
-                    <th class="px-3 py-3 font-semibold">Sakit</th>
-                    <th class="px-3 py-3 font-semibold">Alpa</th>
-                    <th class="px-3 py-3 text-left font-semibold">Terlambat</th>
-                    <th class="px-3 py-3 text-left font-semibold">Kehadiran</th>
-                    <th class="px-4 py-3 text-right font-semibold">% Alpa</th>
+                    <th class="sticky left-0 top-0 z-30 min-w-[9rem] bg-krem px-4 py-3 text-left font-semibold shadow-[1px_0_0_0_#e2dcef] md:min-w-[14rem]">Guru</th>
+                    <th class="{{ $th }}">Hadir</th>
+                    <th class="{{ $th }}">Tugas khusus</th>
+                    <th class="{{ $th }}">Izin</th>
+                    <th class="{{ $th }}">Sakit</th>
+                    <th class="{{ $th }}">Alpa</th>
+                    <th class="{{ $th }} text-left">Terlambat</th>
+                    <th class="{{ $th }} text-left">Kehadiran</th>
+                    <th class="sticky top-0 z-20 bg-krem px-4 py-3 text-right font-semibold">% Alpa</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-garis">
                 @forelse ($baris as $r)
-                    <tr>
-                        <td class="px-4 py-3">
+                    <tr data-nama="{{ mb_strtolower($r['user']->nama_lengkap) }}">
+                        <td class="sticky left-0 z-10 min-w-[9rem] bg-white px-4 py-3 shadow-[1px_0_0_0_#e2dcef] md:min-w-[14rem]">
                             <div class="font-semibold">{{ $r['user']->nama_lengkap }}</div>
                             @if (! $unit) <div class="text-xs text-gray-500">{{ $r['user']->unit?->label() }}</div> @endif
                         </td>
@@ -103,6 +101,13 @@
                 @empty
                     <tr><td colspan="9" class="px-4 py-10 text-center text-gray-500">Tidak ada data guru pada periode ini.</td></tr>
                 @endforelse
+                @if ($baris->isNotEmpty())
+                    <tr data-cari-kosong hidden>
+                        <td colspan="9" class="px-4 py-10 text-gray-500">
+                            <span class="sticky left-4">Nama guru tidak ditemukan.</span>
+                        </td>
+                    </tr>
+                @endif
             </tbody>
         </table>
     </div>
