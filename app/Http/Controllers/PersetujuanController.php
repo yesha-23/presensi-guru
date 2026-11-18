@@ -17,6 +17,7 @@ use App\Services\StatusHarianService;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
 use App\Models\SuratTugas;
+use App\Models\PersetujuanSuratTugas;
 use App\Services\SuratTugasService;
 use App\Models\LogKoreksi;
 use App\Services\KoreksiPresensiService;
@@ -110,6 +111,12 @@ class PersetujuanController extends Controller
             'suratDipilih'   => $suratDipilih,
             'dataSurat'      => $suratDipilih ? $layananSurat->dataSurat($suratDipilih) : null,
             'ttdSaya'        => $penyetuju->ttd_path,
+            // Surat yang sudah Anda proses (disetujui / perlu revisi / ditolak), agar PDF tetap bisa dilihat
+            'diprosesSurat'  => PersetujuanSuratTugas::with('suratTugas.persetujuan')
+                ->where('penyetuju_id', $penyetuju->id)
+                ->where('status', '!=', 'Menunggu')
+                ->whereHas('suratTugas')
+                ->latest('updated_at')->limit(10)->get(),
         ]);
     }
 

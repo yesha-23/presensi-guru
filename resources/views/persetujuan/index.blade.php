@@ -80,6 +80,18 @@
                 'penanda'  => $s->diajukan_oleh ? 'Usulan pegawai' : null,
             ]),
         ])
+        @include('persetujuan._diproses', ['kolomNama' => 'Perihal', 'baris' => $diprosesSurat->map(fn ($p) => [
+            'nama'        => $p->suratTugas->perihal,
+            'jenis'       => 'Surat tugas'.($p->suratTugas->nomor_surat ? ' · '.$p->suratTugas->nomor_surat : ''),
+            'tanggal'     => $p->suratTugas->rentangTanggal(),
+            'status'      => $p->status,
+            'waktu'       => $p->ditandatangani_at ?? $p->updated_at,
+            'catatan'     => $p->catatan,
+            'url'         => $p->suratTugas->status === 'Disetujui' && $p->suratTugas->pdf_path
+                ? route('surat-tugas.pdf', $p->suratTugas)
+                : null,
+            'ket_dokumen' => 'Surat '.mb_strtolower($p->suratTugas->labelStatus()),
+        ])])
     @endif
 
 @elseif ($tab === 'koreksi')
