@@ -31,7 +31,7 @@
             <select name="semester" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
                 @forelse ($semesters as $s)
                     <option value="{{ $s->id }}" @selected($semester?->id === $s->id)>
-                        Semester {{ $s->jenis === 'Ganjil' ? '1' : '2' }} · {{ $s->tahun_ajaran }}
+                        Semester {{ $s->jenis }} {{ $s->tahun_ajaran }}
                         ({{ $s->tanggal_mulai->translatedFormat('j M') }} – {{ $s->tanggal_selesai->translatedFormat('j M') }})
                     </option>
                 @empty
@@ -63,7 +63,7 @@
                 <select name="semester" onchange="this.form.submit()" class="{{ $kelasIsi }} cursor-pointer">
                     @foreach ($semesters as $s)
                         <option value="{{ $s->id }}" @selected($semester?->id === $s->id)>
-                            Semester {{ $s->jenis === 'Ganjil' ? '1' : '2' }} · {{ $s->tahun_ajaran }}
+                            Semester {{ $s->jenis }} {{ $s->tahun_ajaran }}
                         </option>
                     @endforeach
                 </select>
