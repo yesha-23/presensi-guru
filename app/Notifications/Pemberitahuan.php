@@ -2,12 +2,14 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\DenganEmail;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class Pemberitahuan extends Notification
+class Pemberitahuan extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, DenganEmail;
 
     public function __construct(
         public string $judul,
@@ -15,11 +17,6 @@ class Pemberitahuan extends Notification
         public string $url,
         public string $jenis = 'info',
     ) {
-    }
-
-    public function via(object $notifiable): array
-    {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array

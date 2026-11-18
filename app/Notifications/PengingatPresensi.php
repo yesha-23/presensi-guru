@@ -2,13 +2,15 @@
 
 namespace App\Notifications;
 
+use App\Notifications\Concerns\DenganEmail;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
-class PengingatPresensi extends Notification
+class PengingatPresensi extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, DenganEmail;
 
     /**
      * @param string $jenis 'datang' atau 'pulang'
@@ -18,12 +20,7 @@ class PengingatPresensi extends Notification
     {
     }
 
-    /** Email hanya jika pegawai punya alamat email; lonceng selalu. */
-    public function via(object $notifiable): array
-    {
-        return $notifiable->email ? ['database', 'mail'] : ['database'];
-    }
-
+    /** Isi email khusus pengingat (menimpa toMail umum dari trait DenganEmail). */
     public function toMail(object $notifiable): MailMessage
     {
         $datang = $this->jenis === 'datang';

@@ -3,21 +3,18 @@
 namespace App\Notifications;
 
 use App\Models\Lembur;
+use App\Notifications\Concerns\DenganEmail;
 use App\Services\LemburService;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class HasilPengajuanLembur extends Notification
+class HasilPengajuanLembur extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, DenganEmail;
 
     public function __construct(public Lembur $lembur)
     {
-    }
-
-    public function via(object $notifiable): array
-    {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array

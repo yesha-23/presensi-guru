@@ -3,20 +3,17 @@
 namespace App\Notifications;
 
 use App\Models\PengajuanIzin;
+use App\Notifications\Concerns\DenganEmail;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
 
-class PengajuanBaru extends Notification
+class PengajuanBaru extends Notification implements ShouldQueue
 {
-    use Queueable;
+    use Queueable, DenganEmail;
 
     public function __construct(public PengajuanIzin $pengajuan)
     {
-    }
-
-    public function via(object $notifiable): array
-    {
-        return ['database'];
     }
 
     public function toArray(object $notifiable): array
