@@ -23,7 +23,7 @@
 @endphp
 
 <div style="{{ $modePdf ? '' : 'position: relative; width: 21cm; min-height: 29.7cm; padding: 1.3cm 1.8cm 1.6cm 4.4cm; box-sizing: border-box; background: #fff; margin: 0 auto;' }}
-            font-family: 'DejaVu Serif', Georgia, serif; font-size: 10.5pt; color: #111; line-height: 1.45;">
+            font-family: 'DejaVu Serif', Georgia, serif; font-size: 10.5pt; color: #111; line-height: 1.35;">
 
     {{-- ================= PITA UNGU ================= --}}
     <div style="{{ $pos('left: -4.4cm; top: -1.3cm; width: 3.2cm; height: 29.7cm;', 'left: 0; top: 0; width: 3.2cm; height: 100%;') }} background: {{ $ungu }};"></div>
@@ -72,10 +72,10 @@
     <table style="{{ $tabel }} margin-bottom: 12px; font-size: 9.5pt;">
         <thead>
             <tr>
-                <th style="{{ $th }} width: 0.8cm;">NO</th>
-                <th style="{{ $th }}">NAMA</th>
-                <th style="{{ $th }} width: 2.8cm;">NIP</th>
-                <th style="{{ $th }} width: 3.8cm;">JABATAN / UNIT</th>
+                <th style="{{ $th }} width: 7%;">NO</th>
+                <th style="{{ $th }} width: 39%;">NAMA</th>
+                <th style="{{ $th }} width: 20%;">NIP</th>
+                <th style="{{ $th }} width: 34%;">JABATAN / UNIT</th>
             </tr>
         </thead>
         <tbody>
@@ -97,16 +97,16 @@
     <p style="margin: 0 0 8px;">untuk melaksanakan tugas sebagai berikut:</p>
 
     {{-- ================= TUGAS ================= --}}
-    {{-- Lebar isi kolom: 0,7 + 2,3 + 1,8 + KEGIATAN (sisa, ±2,9) + 2,3 + 2,6 cm; padding sel menambah ±0,35 cm per kolom --}}
+    {{-- Lebar kolom dalam persen (total 100%) agar DomPDF membagi lebar dengan tepat --}}
     <table style="{{ $tabel }} margin-bottom: 10px; font-size: 9pt;">
         <thead>
             <tr>
-                <th style="{{ $th }} width: 0.7cm;">NO</th>
-                <th style="{{ $th }} width: 2.3cm;">HARI/ TANGGAL</th>
-                <th style="{{ $th }} width: 1.8cm;">WAKTU</th>
-                <th style="{{ $th }}">KEGIATAN</th>
-                <th style="{{ $th }} width: 2.3cm;">TEMPAT</th>
-                <th style="{{ $th }} width: 2.6cm;">KETERANGAN</th>
+                <th style="{{ $th }} width: 6%;">NO</th>
+                <th style="{{ $th }} width: 17%;">HARI/<br>TANGGAL</th>
+                <th style="{{ $th }} width: 13%;">WAKTU</th>
+                <th style="{{ $th }} width: 24%;">KEGIATAN</th>
+                <th style="{{ $th }} width: 18%;">TEMPAT</th>
+                <th style="{{ $th }} width: 22%;">KETERANGAN</th>
             </tr>
         </thead>
         <tbody>
@@ -139,9 +139,20 @@
     </p>
 
     {{-- ================= TANDA TANGAN ================= --}}
+    @php
+        // Tanpa Ketua Yayasan, kolom kiri kosong: tembusan diletakkan di kiri bawah agar surat cukup satu halaman
+        $tembusan = $ketua ? ['Arsip'] : ['Ketua Yayasan', 'Arsip'];
+        $blokTembusan = function () use ($tembusan) {
+            $isi = '';
+            foreach ($tembusan as $i => $t) {
+                $isi .= '<div>'.($i + 1).'. '.e($t).'</div>';
+            }
+            return '<div style="font-size: 9pt; text-align: left;">Tembusan:'.$isi.'</div>';
+        };
+    @endphp
     <table style="width: 100%; margin-top: 14px; page-break-inside: avoid;">
         <tr>
-            <td style="width: 50%; text-align: center; vertical-align: top;">
+            <td style="width: 50%; text-align: center; vertical-align: {{ $ketua ? 'top' : 'bottom' }};">
                 @if ($ketua)
                     <div>Mengetahui,</div>
                     <div>Ketua Yayasan</div>
@@ -153,6 +164,8 @@
                         @endif
                     </div>
                     <div>{{ $ketua['nama'] ?? '..............................' }}</div>
+                @else
+                    {!! $blokTembusan() !!}
                 @endif
             </td>
             <td style="width: 50%; text-align: center; vertical-align: top;">
@@ -170,14 +183,8 @@
         </tr>
     </table>
 
-    {{-- ================= TEMBUSAN ================= --}}
-    <div style="margin-top: 12px; font-size: 9pt; page-break-inside: avoid;">
-        Tembusan:
-        <ol style="margin: 2px 0 0 18px; padding: 0;">
-            @unless ($ketua)
-                <li>Ketua Yayasan</li>
-            @endunless
-            <li>Arsip</li>
-        </ol>
-    </div>
+    {{-- ================= TEMBUSAN (surat dengan Ketua Yayasan) ================= --}}
+    @if ($ketua)
+        <div style="margin-top: 8px; page-break-inside: avoid;">{!! $blokTembusan() !!}</div>
+    @endif
 </div>
