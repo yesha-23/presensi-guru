@@ -210,7 +210,10 @@ class RekapController extends Controller
             ->value('nama_lengkap');
 
         return [
-            'kepsek' => $nama(Role::KEPALA_SEKOLAH, $unit?->kode === 'KBTK' ? 'KBTK' : 'SD'),
+            // Rekap semua unit / unit Yayasan tidak ditandatangani kepala sekolah tertentu
+            'kepsek' => $unit && in_array($unit->kode, ['SD', 'KBTK'], true)
+                ? $nama(Role::KEPALA_SEKOLAH, $unit->kode)
+                : null,
             'kabag'  => PersetujuanService::kabag()?->nama_lengkap,
             'ketua'  => $nama(Role::KETUA_YAYASAN),
         ];

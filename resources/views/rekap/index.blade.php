@@ -115,7 +115,7 @@
 {{-- Blok tanda tangan --}}
 <div class="mt-4 grid gap-6 rounded-2xl border border-garis bg-white p-6 text-center text-sm sm:grid-cols-3">
     <div>
-        <div class="text-gray-500">{{ $kota }}, [tanggal]</div>
+        <div class="text-gray-500">{{ $kota }}, {{ now()->translatedFormat('j F Y') }}</div>
         <div class="mt-1">Kepala Sekolah</div>
         <div class="mt-12 font-bold">{{ $penandatangan['kepsek'] ?? '..............................' }}</div>
     </div>
