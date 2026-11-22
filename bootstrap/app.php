@@ -20,6 +20,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn () => route('login'));
         $middleware->redirectUsersTo(fn () => route('dashboard'));
         $middleware->trustProxies(at: '*');
+
+        // Halaman setelah login tidak disimpan di cache browser (tombol Back setelah logout)
+        $middleware->web(append: \App\Http\Middleware\TanpaCache::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
