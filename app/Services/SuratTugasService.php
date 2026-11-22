@@ -35,6 +35,15 @@ class SuratTugasService
             ->first();
     }
 
+    /** Pegawai KB & TK bersama pegawai unit lain (SD/Yayasan) dalam satu surat -> wajib kasus khusus. */
+    public function lintasUnit(Collection $pegawai): bool
+    {
+        $pegawai->loadMissing('unit');
+        $kode = $pegawai->map(fn ($p) => $p->unit?->kode)->unique();
+
+        return $kode->contains('KBTK') && $kode->contains(fn ($k) => $k !== 'KBTK');
+    }
+    
     public function ketuaYayasan(): ?User
     {
         return User::where('status', 'Aktif')
@@ -109,6 +118,11 @@ class SuratTugasService
     {
         $revisi = $surat->status === 'Perlu Revisi';
         $surat->load('pegawai.unit');
+
+        // Pengaman: surat lintas unit selalu melalui Ketua Yayasan
+        if (! $surat->kasus_khusus && $this->lintasUnit($surat->pegawai)) {
+            $surat->update(['kasus_khusus' => true]);
+        }
 
         $kepsek = $this->kepalaSekolahUntuk($surat->pegawai);
         if (! $kepsek) {
@@ -246,10 +260,7 @@ class SuratTugasService
         ));
     }
 
-    /**
-     * Format mengikuti pola surat yayasan: 001/ST/SD-TB/X/2026
-     * (urut per tahun / ST = Surat Tugas / kode unit / bulan romawi / tahun).
-     */
+    /* Format mengikuti pola surat yayasan: 001/ST/SD-TB/X/2026 (urut per tahun / ST = Surat Tugas / kode unit / bulan romawi / tahun).*/
     public function nomorBaru(SuratTugas $surat): string
     {
         $tahun = now()->year;

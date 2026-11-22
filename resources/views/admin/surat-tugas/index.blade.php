@@ -6,6 +6,7 @@
     $kelasLabel = 'block text-sm font-semibold';
     $hariIni = today()->toDateString();
     $pegawaiLama = array_map('intval', old('pegawai', []));
+    $jumlahPerUnit = $pilihanPegawai->countBy('kode');
 @endphp
 
 <div class="flex flex-wrap items-start justify-between gap-4">
@@ -174,6 +175,25 @@
                     <input id="cari-pegawai" autocomplete="off" placeholder="Ketik nama untuk menambah" class="min-w-40 flex-1 px-1 text-sm outline-none">
                 </div>
                 <div id="daftar-pegawai" class="absolute z-10 mt-1 hidden max-h-60 w-full overflow-y-auto rounded-xl border border-garis bg-white shadow-lg"></div>
+
+                {{-- Pilih cepat per unit (B2) --}}
+                <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                    <span class="text-gray-500">Pilih cepat:</span>
+                    <button type="button" data-pilih-unit="SD"
+                            class="rounded-lg border border-garis px-2.5 py-1 font-semibold hover:bg-krem">
+                        Semua SD ({{ $jumlahPerUnit['SD'] ?? 0 }})
+                    </button>
+                    <button type="button" data-pilih-unit="KBTK"
+                            class="rounded-lg border border-garis px-2.5 py-1 font-semibold hover:bg-krem">
+                        Semua KB &amp; TK ({{ $jumlahPerUnit['KBTK'] ?? 0 }})
+                    </button>
+                    <button type="button" data-kosongkan
+                            class="rounded-lg border border-garis px-2.5 py-1 font-semibold text-merah hover:bg-merah-muda">
+                        Kosongkan
+                    </button>
+                </div>
+                <p id="ringkasan-pegawai" class="mt-2 text-xs text-gray-600">Belum ada pegawai dipilih</p>
+
                 @error('pegawai') <span data-galat class="mt-1 block text-xs text-merah">{{ $message }}</span> @enderror
                 @error('pegawai.*') <span data-galat class="mt-1 block text-xs text-merah">{{ $message }}</span> @enderror
             </div>
@@ -183,7 +203,7 @@
                 @error('tanggal_mulai') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
             <label class="{{ $kelasLabel }}">Tanggal selesai
-                <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" class="{{ $kelasInput }}">
+                <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai') }}" min="{{ old('tanggal_mulai') }}" class="{{ $kelasInput }}">
                 @error('tanggal_selesai') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
             <label class="{{ $kelasLabel }}">Jam mulai <span class="font-normal text-gray-500">(opsional)</span>
@@ -230,13 +250,21 @@
                 </div>
             </div>
 
-            <label class="flex items-start gap-3 rounded-xl bg-yellow-50 px-4 py-3 text-sm text-yellow-900 sm:col-span-2">
-                <input type="checkbox" name="kasus_khusus" value="1" class="mt-0.5 h-4 w-4 accent-merah" @checked(old('kasus_khusus'))>
-                <span>
-                    <span class="block font-semibold">Luar kota / kasus khusus: perlu persetujuan dan tanda tangan Ketua Yayasan</span>
-                    <span class="block text-xs">Centang untuk tugas ke luar kota atau kegiatan lain yang ditetapkan yayasan. Surat ditandatangani kepala sekolah lebih dulu, lalu Ketua Yayasan.</span>
-                </span>
-            </label>
+            <div class="sm:col-span-2">
+                <label class="flex items-start gap-3 rounded-xl bg-yellow-50 px-4 py-3 text-sm text-yellow-900">
+                    <input type="checkbox" name="kasus_khusus" value="1" class="mt-0.5 h-4 w-4 accent-merah disabled:opacity-60" @checked(old('kasus_khusus'))>
+                    <span>
+                        <span class="block font-semibold">Luar kota / kasus khusus: perlu persetujuan dan tanda tangan Ketua Yayasan</span>
+                        <span class="block text-xs">Centang untuk tugas ke luar kota atau kegiatan lain yang ditetapkan yayasan. Surat ditandatangani kepala sekolah lebih dulu, lalu Ketua Yayasan.</span>
+                    </span>
+                </label>
+
+                {{-- Muncul otomatis bila pegawai KB & TK digabung dengan pegawai unit lain (B2) --}}
+                <div id="peringatan-lintas" class="mt-2 hidden items-start gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs text-blue-900">
+                    <i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0"></i>
+                    <span>Pegawai berasal dari KB &amp; TK dan unit lain. Surat ditandatangani <b>Kepala Sekolah SD</b>, lalu <b>Ketua Yayasan</b>, sehingga pilihan kasus khusus dicentang otomatis dan tidak dapat dihapus.</span>
+                </div>
+            </div>
 
             <div class="sm:col-span-2">
                 <label class="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-garis bg-krem/60 px-4 py-3 text-sm font-semibold hover:bg-krem">
@@ -266,7 +294,48 @@
     const kotakChip = document.getElementById('chip-pegawai');
     const inputCari = document.getElementById('cari-pegawai');
     const daftar = document.getElementById('daftar-pegawai');
+    const cekKhusus = form.elements['kasus_khusus'];
+    const ringkasan = document.getElementById('ringkasan-pegawai');
+    const peringatanLintas = document.getElementById('peringatan-lintas');
+    const tglMulai = form.elements['tanggal_mulai'];
+    const tglSelesai = form.elements['tanggal_selesai'];
     let terpilih = [];
+    let centangManual = cekKhusus.checked; // pilihan admin sebelum dikunci otomatis
+
+    // ---------- Ringkasan pegawai & kasus khusus otomatis (B2) ----------
+    function perbaruiRingkasan() {
+        const dipilih = terpilih.map((id) => PEGAWAI.find((p) => p.id === id)).filter(Boolean);
+        const kode = new Set(dipilih.map((p) => p.kode));
+        const lintasUnit = kode.has('KBTK') && [...kode].some((k) => k !== 'KBTK');
+        const semuaKbtk = dipilih.length > 0 && kode.size === 1 && kode.has('KBTK');
+
+        cekKhusus.disabled = lintasUnit;
+        cekKhusus.checked = lintasUnit || centangManual;
+        peringatanLintas.classList.toggle('hidden', !lintasUnit);
+        peringatanLintas.classList.toggle('flex', lintasUnit);
+
+        if (!dipilih.length) {
+            ringkasan.textContent = 'Belum ada pegawai dipilih';
+            return;
+        }
+        const penandatangan = (semuaKbtk ? 'Kepala KB & TK' : 'Kepala Sekolah SD')
+            + (cekKhusus.checked ? ', lalu Ketua Yayasan' : '');
+        ringkasan.textContent = `${dipilih.length} pegawai dipilih · Ditandatangani ${penandatangan}`;
+    }
+
+    cekKhusus.addEventListener('change', () => {
+        centangManual = cekKhusus.checked;
+        perbaruiRingkasan();
+    });
+
+    // ---------- Tanggal selesai mengikuti tanggal mulai (B1) ----------
+    function aturTanggalSelesai() {
+        tglSelesai.min = tglMulai.value || '';
+        if (tglMulai.value && (!tglSelesai.value || tglSelesai.value < tglMulai.value)) {
+            tglSelesai.value = tglMulai.value;
+        }
+    }
+    tglMulai.addEventListener('change', aturTanggalSelesai);
 
     // ---------- Pemilih pegawai (chip) ----------
     function gambarChip() {
@@ -280,6 +349,11 @@
             chip.dataset.chip = '';
             chip.className = 'inline-flex items-center gap-1 rounded-lg bg-merah-muda px-2 py-1 text-sm font-semibold text-merah';
             chip.append(p.nama);
+
+            const unit = document.createElement('span');
+            unit.className = 'text-xs font-normal opacity-70';
+            unit.textContent = `· ${p.unit}`;
+            chip.append(unit);
 
             const hapus = document.createElement('button');
             hapus.type = 'button';
@@ -296,7 +370,22 @@
 
             kotakChip.insertBefore(chip, inputCari);
         });
+
+        perbaruiRingkasan();
     }
+
+    // ---------- Pilih cepat per unit (B2) ----------
+    document.querySelectorAll('[data-pilih-unit]').forEach((tombol) =>
+        tombol.addEventListener('click', () => {
+            PEGAWAI.filter((p) => p.kode === tombol.dataset.pilihUnit)
+                .forEach((p) => { if (!terpilih.includes(p.id)) terpilih.push(p.id); });
+            gambarChip();
+        }));
+
+    document.querySelector('[data-kosongkan]').addEventListener('click', () => {
+        terpilih = [];
+        gambarChip();
+    });
 
     function tampilDaftar() {
         const kata = inputCari.value.toLowerCase().trim();
@@ -355,13 +444,14 @@
         form.elements['keterangan'].value = data?.keterangan ?? '';
         form.elements['jenis_kegiatan'].value = data?.jenis_kegiatan ?? 'Luar';
         form.elements['sifat'].value = data?.sifat ?? 'Terencana';
-        form.elements['kasus_khusus'].checked = !!data?.kasus_khusus;
+        centangManual = !!data?.kasus_khusus;
         form.elements['lampiran'].value = '';
         document.getElementById('info-lampiran').textContent = data?.lampiran
             ? 'Lampiran sudah ada · unggah file baru untuk mengganti'
             : 'Opsional · maksimal 2 MB';
         terpilih = data ? [...data.pegawai] : [];
         gambarChip();
+        aturTanggalSelesai();
         modal.querySelectorAll('[data-galat]').forEach((el) => el.remove());
     }
 
@@ -390,6 +480,7 @@
         aturMode(tombolAwal ? 'edit' : 'tambah', tombolAwal ? JSON.parse(tombolAwal.dataset.surat) : null);
         terpilih = @json($pegawaiLama);
         gambarChip();
+        aturTanggalSelesai();
         modal.showModal();
     }
 </script>

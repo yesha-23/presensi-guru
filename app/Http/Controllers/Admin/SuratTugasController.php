@@ -42,7 +42,7 @@ class SuratTugasController extends Controller
             ->whereHas('roles', fn ($q) => $q->where('nama', Role::PEGAWAI))
             ->orderBy('nama_lengkap')
             ->get()
-            ->map(fn ($u) => ['id' => $u->id, 'nama' => $u->nama_lengkap, 'unit' => $u->unit->label()])
+            ->map(fn ($u) => ['id' => $u->id, 'nama' => $u->nama_lengkap, 'unit' => $u->unit->label(), 'kode' => $u->unit->kode])
             ->values();
 
         return view('admin.surat-tugas.index', [
@@ -242,6 +242,12 @@ class SuratTugasController extends Controller
             throw new HttpResponseException(back()->withErrors($validator)->withInput()->with('modal', $mode));
         }
 
-        return $validator->validated() + ['kasus_khusus' => $request->boolean('kasus_khusus')];
+        $data = $validator->validated();
+
+        // Pegawai KB & TK digabung dengan unit lain wajib kasus khusus (Kepala Sekolah SD lalu Ketua Yayasan)
+        $pegawai = User::with('unit')->whereIn('id', $data['pegawai'])->get();
+        $data['kasus_khusus'] = $request->boolean('kasus_khusus') || $this->layanan->lintasUnit($pegawai);
+
+        return $data;
     }
 }
