@@ -246,7 +246,7 @@
                         <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Simpan sandi
                     </button>
                 </div>
-                <p class="mt-1 text-xs font-normal text-gray-500">Sampaikan kata sandi baru kepada pegawai. Pegawai akan keluar dari semua perangkat.</p>
+                <p class="mt-1 text-xs font-normal text-gray-500">Sampaikan kata sandi baru kepada pegawai, lalu minta ia menggantinya sendiri melalui menu Ganti kata sandi. Pegawai akan keluar dari semua perangkat.</p>
                 @error('kata_sandi_baru') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </div>
 

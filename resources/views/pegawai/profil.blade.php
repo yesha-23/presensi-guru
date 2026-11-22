@@ -53,9 +53,16 @@
     </div>
 
     {{-- Kata sandi (SR-F03) --}}
-    <div class="mt-4 flex items-start gap-3 rounded-2xl border border-garis bg-white p-5 text-sm text-gray-600">
-        <i data-lucide="lock" class="mt-0.5 h-5 w-5 shrink-0"></i>
-        <p>Kata sandi dibuat dan diubah oleh administrator. Hubungi Kepala Bagian Administrasi Umum bila perlu reset.</p>
+    <div class="mt-4 rounded-2xl border border-garis bg-white p-5 text-sm text-gray-600">
+        <div class="flex items-start gap-3">
+            <i data-lucide="lock" class="mt-0.5 h-5 w-5 shrink-0"></i>
+            <p>Kata sandi awal diberikan administrator. Anda dapat menggantinya sendiri kapan saja.
+               Lupa kata sandi? Hubungi Kepala Bagian Administrasi Umum untuk reset.</p>
+        </div>
+        <a href="{{ route('akun.kata-sandi') }}"
+           class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-garis py-2.5 font-semibold text-gray-800 hover:bg-krem">
+            <i data-lucide="key-round" class="h-4 w-4"></i> Ganti kata sandi
+        </a>
     </div>
 
     <form method="POST" action="{{ route('logout') }}" class="mt-4">

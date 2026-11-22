@@ -130,7 +130,7 @@ class PegawaiController extends Controller
             DB::table('sessions')->where('user_id', $pegawai->id)->delete();
         }
 
-        return back()->with('sukses', "Kata sandi {$pegawai->nama_lengkap} berhasil diganti. Sampaikan kata sandi baru kepada pegawai yang bersangkutan.");
+        return back()->with('sukses', "Kata sandi {$pegawai->nama_lengkap} berhasil diganti. Sampaikan kata sandi baru kepada pegawai dan minta ia menggantinya melalui menu Ganti kata sandi.");
     }
 
     public function destroy(Request $request, User $pegawai)

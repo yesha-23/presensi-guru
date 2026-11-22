@@ -25,5 +25,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: \App\Http\Middleware\TanpaCache::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        //
+        // Isian kata sandi tidak ikut disimpan ke sesi saat validasi gagal
+        $exceptions->dontFlash([
+            'kata_sandi_lama',
+            'kata_sandi_baru',
+            'kata_sandi_baru_confirmation',
+        ]);
     })->create();

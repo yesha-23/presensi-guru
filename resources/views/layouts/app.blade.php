@@ -79,7 +79,14 @@
         @endif
     </nav>
 
-    <form method="POST" action="{{ route('logout') }}" class="mt-4">
+    @php $aktifSandi = request()->routeIs('akun.kata-sandi*'); @endphp
+    <a href="{{ route('akun.kata-sandi') }}" @if ($aktifSandi) aria-current="page" @endif
+       class="mt-4 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm {{ $aktifSandi ? 'bg-merah-muda font-semibold text-merah' : 'font-medium text-gray-700 hover:bg-krem' }}">
+        <i data-lucide="key-round" class="h-[18px] w-[18px]"></i>
+        Ganti kata sandi
+    </a>
+
+    <form method="POST" action="{{ route('logout') }}" class="mt-2">
         @csrf
         <button type="submit"
                 class="flex w-full items-center justify-center gap-2 rounded-xl border border-garis py-2.5 text-sm font-semibold text-merah hover:bg-merah-muda">

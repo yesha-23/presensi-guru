@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\KalenderController;
 use App\Http\Controllers\Admin\KalenderImporController;
 use App\Http\Controllers\Admin\PegawaiController as AdminPegawaiController;
 use App\Http\Controllers\Admin\WajahController;
+use App\Http\Controllers\AkunController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BuktiPengajuanController;
 use App\Http\Controllers\IzinController;
@@ -48,7 +49,12 @@ Route::middleware(['auth', 'batas.sesi'])->group(function () {
 
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
-    Route::get('/dashboard', fn () => redirect()->route(auth()->user()->rutePeran()))->name('dashboard');
+    // Ganti kata sandi sendiri (semua peran); dibatasi 5 percobaan per menit
+    Route::get('/akun/kata-sandi', [AkunController::class, 'kataSandi'])->name('akun.kata-sandi');
+    Route::put('/akun/kata-sandi', [AkunController::class, 'ubahKataSandi'])
+        ->middleware('throttle:5,1')->name('akun.kata-sandi.ubah');
+
+    Route::get('/dashboard', fn() => redirect()->route(auth()->user()->rutePeran()))->name('dashboard');
 
     // Notifikasi (lonceng)
     Route::get('/notifikasi', [NotifikasiController::class, 'index'])->name('notifikasi');
