@@ -47,7 +47,10 @@
             </h2>
             <a href="{{ route('admin.presensi', ['unit' => $unit?->id]) }}" class="text-sm font-semibold text-merah underline">Lihat semua</a>
         </div>
-        @include('dashboard._tabel')
+        <div class="px-4 pb-3">
+            @include('rekap._cari', ['tabel' => 'tabel-kehadiran'])
+        </div>
+        @include('dashboard._tabel', ['idTabel' => 'tabel-kehadiran'])
     </div>
 
     {{-- Menunggu persetujuan --}}

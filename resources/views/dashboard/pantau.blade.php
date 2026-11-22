@@ -36,8 +36,12 @@
     @endforeach
 </div>
 
-<div class="mt-3 overflow-hidden rounded-2xl border border-garis bg-white">
-    @include('dashboard._tabel')
+<div class="mt-3">
+    @include('rekap._cari', ['tabel' => 'tabel-kehadiran'])
+</div>
+
+<div class="mt-2 overflow-hidden rounded-2xl border border-garis bg-white">
+    @include('dashboard._tabel', ['idTabel' => 'tabel-kehadiran'])
 </div>
 
 @include('dashboard._segarkan')
