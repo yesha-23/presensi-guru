@@ -59,7 +59,7 @@ class SuratTugasController extends Controller
         $data = $this->validasi($request, 'tambah');
 
         $surat = DB::transaction(function () use ($data, $request) {
-            $surat = SuratTugas::create(Arr::except($data, ['pegawai', 'lampiran']) + [
+            $surat = SuratTugas::create(Arr::except($data, ['pegawai', 'lampiran', 'catatan_perbaikan']) + [
                 'status'        => 'Draf',
                 'dibuat_oleh'   => $request->user()->id,
                 'lampiran_path' => $request->file('lampiran')?->store('lampiran-surat'),
@@ -86,10 +86,15 @@ class SuratTugasController extends Controller
     public function update(Request $request, SuratTugas $surat)
     {
         $this->pastikanBisaDiubah($surat);
-        $data = $this->validasi($request, 'edit');
+        $data = $this->validasi($request, 'edit', $surat);
 
         DB::transaction(function () use ($data, $request, $surat) {
             $isi = Arr::except($data, ['pegawai', 'lampiran']);
+
+            // "Apa yang diperbaiki" hanya untuk surat yang sedang Perlu Revisi
+            if ($surat->status !== 'Perlu Revisi') {
+                unset($isi['catatan_perbaikan']);
+            }
 
             if ($request->hasFile('lampiran')) {
                 if ($surat->lampiran_path) {
@@ -135,9 +140,21 @@ class SuratTugasController extends Controller
     }
 
     /** Kirim draf / usulan yang sudah diproses / surat hasil revisi. */
-    public function kirim(SuratTugas $surat)
+    public function kirim(Request $request, SuratTugas $surat)
     {
         $this->pastikanBisaDiubah($surat);
+
+        // Kirim ulang dari halaman detail: isian "Apa yang diperbaiki" (B5)
+        if ($surat->status === 'Perlu Revisi') {
+            $data = $request->validate([
+                'catatan_perbaikan' => ['required', 'string', 'min:5', 'max:500'],
+            ], [
+                'catatan_perbaikan.required' => 'Tuliskan apa yang diperbaiki sebelum mengirim ulang.',
+                'catatan_perbaikan.min'      => 'Penjelasan perbaikan minimal 5 karakter.',
+                'catatan_perbaikan.max'      => 'Penjelasan perbaikan maksimal 500 karakter.',
+            ]);
+            $surat->update(['catatan_perbaikan' => $data['catatan_perbaikan']]);
+        }
 
         if ($galat = $this->layanan->kirim($surat)) {
             return back()->with('galat', $galat);
@@ -185,8 +202,9 @@ class SuratTugasController extends Controller
         );
     }
 
-    private function validasi(Request $request, string $mode): array
+    private function validasi(Request $request, string $mode, ?SuratTugas $surat = null): array
     {
+        $kirimUlangRevisi = $surat?->status === 'Perlu Revisi' && $request->input('aksi') === 'kirim';
         // Sebagian browser mengirim jam dalam format HH:MM:SS
         $request->merge([
             'jam_mulai'   => $request->filled('jam_mulai') ? substr($request->input('jam_mulai'), 0, 5) : null,
@@ -207,7 +225,10 @@ class SuratTugasController extends Controller
             'jenis_kegiatan'  => ['required', Rule::in(['Dalam', 'Luar'])],
             'sifat'           => ['required', Rule::in(['Terencana', 'Mendadak'])],
             'lampiran'        => ['nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
+            'catatan_perbaikan' => [Rule::requiredIf($kirimUlangRevisi), 'nullable', 'string', 'min:5', 'max:500'],
         ], [
+            'catatan_perbaikan.required'     => 'Tuliskan apa yang diperbaiki sebelum mengirim ulang.',
+            'catatan_perbaikan.min'          => 'Penjelasan perbaikan minimal 5 karakter.',
             'required'                       => ':attribute wajib diisi.',
             'pegawai.required'               => 'Pilih minimal satu pegawai yang ditugaskan.',
             'pegawai.min'                    => 'Pilih minimal satu pegawai yang ditugaskan.',
@@ -220,7 +241,7 @@ class SuratTugasController extends Controller
             'perihal' => 'Perihal', 'pemberi_tugas' => 'Pemberi tugas', 'tanggal_mulai' => 'Tanggal mulai',
             'tanggal_selesai' => 'Tanggal selesai', 'jam_mulai' => 'Jam mulai', 'jam_selesai' => 'Jam selesai',
             'lokasi' => 'Lokasi', 'keterangan' => 'Keterangan',
-            'jenis_kegiatan' => 'Jenis kegiatan', 'sifat' => 'Sifat',
+            'jenis_kegiatan' => 'Jenis kegiatan', 'sifat' => 'Sifat', 'catatan_perbaikan' => 'Apa yang diperbaiki',
         ]);
 
         // Jam selesai hanya boleh diisi bersama jam mulai, dan harus setelahnya

@@ -44,10 +44,18 @@
     </div>
 @endif
 
-@if ($revisi)
+@if ($surat->status === 'Perlu Revisi')
     <div class="mt-4 rounded-2xl bg-orange-50 p-4 text-sm text-orange-900">
-        <b>Perlu revisi menurut {{ $revisi->penyetuju?->nama_lengkap }}.</b> Catatan: {{ $revisi->catatan }}
-        <div class="mt-1 text-xs">Perbaiki surat lewat tombol Ubah di daftar surat tugas, lalu klik Kirim ulang.</div>
+        <b>Perlu revisi{{ $revisi?->penyetuju ? ' menurut '.$revisi->penyetuju->nama_lengkap : '' }}.</b>
+        Catatan: {{ $surat->catatan_revisi ?? $revisi?->catatan }}
+        <div class="mt-1 text-xs">Perbaiki surat lewat ikon pensil di daftar surat tugas, lalu tuliskan apa yang diperbaiki dan kirim ulang.</div>
+    </div>
+@elseif ($surat->hasilRevisi() || ($surat->status === 'Disetujui' && $surat->catatan_revisi))
+    {{-- Riwayat revisi terakhir (B5) --}}
+    <div class="mt-4 rounded-2xl bg-blue-50 p-4 text-sm text-blue-900">
+        <b>Surat hasil revisi.</b>
+        <div class="mt-1"><span class="font-semibold">Catatan revisi:</span> {{ $surat->catatan_revisi }}</div>
+        <div><span class="font-semibold">Yang diperbaiki:</span> {{ $surat->catatan_perbaikan ?? '-' }}</div>
     </div>
 @endif
 
@@ -102,8 +110,18 @@
         @endif
 
         @if ($bisaUbah)
-            <form method="POST" action="{{ route('admin.surat-tugas.kirim', $surat) }}">
+            <form method="POST" action="{{ route('admin.surat-tugas.kirim', $surat) }}"
+                  @class(['rounded-2xl border border-garis bg-white p-4' => $surat->status === 'Perlu Revisi'])>
                 @csrf
+                @if ($surat->status === 'Perlu Revisi')
+                    <label class="block text-sm font-bold">Apa yang diperbaiki
+                        <textarea name="catatan_perbaikan" rows="3" maxlength="500"
+                                  placeholder="Contoh: Lokasi diganti menjadi Aula Dinas Pendidikan Sleman; jam mulai 08.00."
+                                  class="mt-1 w-full rounded-xl border border-garis px-3 py-2 text-sm font-normal outline-none focus:border-navy">{{ old('catatan_perbaikan', $surat->catatan_perbaikan) }}</textarea>
+                    </label>
+                    @error('catatan_perbaikan') <p class="mt-1 text-xs text-merah">{{ $message }}</p> @enderror
+                    <p class="mb-3 mt-1 text-xs text-gray-500">Dibaca kepala sekolah dan Ketua Yayasan saat meninjau surat hasil revisi.</p>
+                @endif
                 <button class="{{ $kelasTombolUtama }}">
                     {{ $surat->status === 'Perlu Revisi' ? 'Kirim ulang ke Kepala Sekolah' : 'Kirim ke Kepala Sekolah' }}
                 </button>

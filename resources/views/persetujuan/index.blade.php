@@ -79,7 +79,7 @@
                 'judul'    => $s->perihal,
                 'ket'      => $s->rentangTanggal().' · '.$s->pegawai->count().' pegawai · '.$s->lokasi,
                 'diajukan' => $s->updated_at,
-                'penanda'  => $s->diajukan_oleh ? 'Usulan pegawai' : null,
+                'penanda'  => $s->hasilRevisi() ? 'Hasil revisi' : ($s->diajukan_oleh ? 'Usulan pegawai' : null),
             ]),
         ])
         @include('persetujuan._diproses', ['kolomNama' => 'Perihal', 'baris' => $diprosesSurat->map(fn ($p) => [

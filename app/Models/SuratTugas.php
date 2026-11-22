@@ -24,6 +24,7 @@ class SuratTugas extends Model
         'nomor_surat', 'perihal', 'pemberi_tugas', 'lokasi', 'jenis_kegiatan', 'sifat',
         'tanggal_mulai', 'tanggal_selesai', 'kasus_khusus', 'lampiran_path', 'pdf_path',
         'status', 'dibuat_oleh', 'diajukan_oleh', 'catatan_usulan', 'jam_mulai', 'jam_selesai', 'keterangan',
+        'catatan_revisi', 'catatan_perbaikan',
     ];
 
     protected function casts(): array
@@ -72,6 +73,11 @@ class SuratTugas extends Model
         return $this->persetujuan->firstWhere('status', 'Perlu Revisi');
     }
 
+    /** Surat hasil revisi yang dikirim ulang dan sedang menunggu persetujuan. */
+    public function hasilRevisi(): bool
+    {
+        return $this->status === 'Menunggu' && filled($this->catatan_revisi);
+    }
     /** Status untuk ditampilkan: Menunggu dirinci per tahap; Disetujui yang sudah lewat = Selesai. */
     public function labelStatus(): string
     {

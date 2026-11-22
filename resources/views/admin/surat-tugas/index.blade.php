@@ -155,6 +155,21 @@
         </div>
 
         <div class="grid gap-4 px-6 py-5 sm:grid-cols-2">
+            {{-- Hanya untuk surat berstatus Perlu Revisi (B5) --}}
+            <div id="blok-revisi" class="hidden space-y-3 rounded-xl bg-orange-50 p-4 text-sm text-orange-900 sm:col-span-2">
+                <div>
+                    <span class="block font-semibold">Catatan revisi dari penanda tangan</span>
+                    <p id="teks-revisi" class="mt-0.5 whitespace-pre-line"></p>
+                </div>
+                <label class="block font-semibold">Apa yang diperbaiki <span class="font-normal">(wajib saat kirim ulang)</span>
+                    <textarea name="catatan_perbaikan" rows="2" maxlength="500"
+                              placeholder="Contoh: Lokasi diganti menjadi Aula Dinas Pendidikan Sleman; jam mulai 08.00."
+                              class="{{ $kelasInput }}">{{ old('catatan_perbaikan') }}</textarea>
+                    <span class="mt-1 block text-xs font-normal">Penjelasan ini dibaca kepala sekolah dan Ketua Yayasan saat meninjau surat hasil revisi.</span>
+                    @error('catatan_perbaikan') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
+                </label>
+            </div>
+
             <label class="{{ $kelasLabel }}">Perihal
                 <input name="perihal" value="{{ old('perihal') }}" placeholder="Contoh: Rapat koordinasi dinas" class="{{ $kelasInput }}">
                 @error('perihal') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
@@ -430,6 +445,12 @@
         document.getElementById('judul-modal').textContent = tambah ? 'Terbitkan surat tugas' : 'Ubah surat tugas';
         // Draf disimpan sebagai draf; usulan yang diproses / surat perlu revisi disimpan tanpa mengubah status
         document.getElementById('tombol-simpan').textContent = tambah || data?.status === 'Draf' ? 'Simpan draf' : 'Simpan perubahan';
+
+        // Blok catatan revisi hanya untuk surat Perlu Revisi (B5)
+        const revisi = data?.status === 'Perlu Revisi';
+        document.getElementById('blok-revisi').classList.toggle('hidden', !revisi);
+        document.getElementById('teks-revisi').textContent = revisi ? (data.catatan_revisi ?? '-') : '';
+        form.querySelector('[name="aksi"][value="kirim"]').textContent = revisi ? 'Kirim ulang ke Kepala Sekolah' : 'Kirim ke Kepala Sekolah';
     }
 
     function isi(data) {
@@ -444,6 +465,7 @@
         form.elements['keterangan'].value = data?.keterangan ?? '';
         form.elements['jenis_kegiatan'].value = data?.jenis_kegiatan ?? 'Luar';
         form.elements['sifat'].value = data?.sifat ?? 'Terencana';
+        form.elements['catatan_perbaikan'].value = data?.catatan_perbaikan ?? '';
         centangManual = !!data?.kasus_khusus;
         form.elements['lampiran'].value = '';
         document.getElementById('info-lampiran').textContent = data?.lampiran

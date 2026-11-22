@@ -8,6 +8,24 @@
 
         {{-- Rincian & keputusan --}}
         <div class="space-y-4">
+            {{-- Surat hasil revisi: catatan sebelumnya & perbaikan admin (B5) --}}
+            @if ($suratDipilih->hasilRevisi())
+                <div class="rounded-2xl bg-blue-50 p-5 text-sm text-blue-900">
+                    <div class="flex items-center gap-2 font-bold">
+                        <i data-lucide="history" class="h-4 w-4"></i> Hasil revisi
+                    </div>
+                    <dl class="mt-2 space-y-2">
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-blue-800">Catatan revisi sebelumnya</dt>
+                            <dd class="whitespace-pre-line">{{ $suratDipilih->catatan_revisi }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase text-blue-800">Yang diperbaiki administrator</dt>
+                            <dd class="whitespace-pre-line">{{ $suratDipilih->catatan_perbaikan ?? '-' }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            @endif
             <div class="rounded-2xl border border-garis bg-white p-5 text-sm">
                 <h2 class="font-bold">{{ $suratDipilih->perihal }}</h2>
                 <dl class="mt-3 space-y-2">

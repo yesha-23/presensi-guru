@@ -119,6 +119,11 @@ class SuratTugasService
         $revisi = $surat->status === 'Perlu Revisi';
         $surat->load('pegawai.unit');
 
+        // Surat hasil revisi wajib menjelaskan apa yang diperbaiki (B5)
+        if ($revisi && blank($surat->catatan_perbaikan)) {
+            return 'Tuliskan apa yang diperbaiki sebelum mengirim ulang surat hasil revisi.';
+        }
+
         // Pengaman: surat lintas unit selalu melalui Ketua Yayasan
         if (! $surat->kasus_khusus && $this->lintasUnit($surat->pegawai)) {
             $surat->update(['kasus_khusus' => true]);
@@ -145,7 +150,8 @@ class SuratTugasService
 
         $kepsek->notify(new Pemberitahuan(
             ($revisi ? 'Surat tugas hasil revisi menunggu persetujuan: ' : 'Surat tugas menunggu persetujuan: ').$surat->perihal,
-            $surat->rentangTanggal().' · '.$surat->pegawai->count().' pegawai',
+            $surat->rentangTanggal().' · '.$surat->pegawai->count().' pegawai'
+                .($revisi ? ' · Diperbaiki: '.$surat->catatan_perbaikan : ''),
             route('persetujuan', ['tab' => 'surat', 'id' => $surat->id]),
             'pengajuan'
         ));
@@ -191,7 +197,8 @@ class SuratTugasService
     public function mintaRevisi(SuratTugas $surat, User $penyetuju, string $catatan): void
     {
         $this->tahapAktif($surat)->update(['status' => 'Perlu Revisi', 'catatan' => $catatan]);
-        $surat->update(['status' => 'Perlu Revisi']);
+        // Catatan disalin ke surat agar tetap terbaca setelah dikirim ulang (B5)
+        $surat->update(['status' => 'Perlu Revisi', 'catatan_revisi' => $catatan, 'catatan_perbaikan' => null]);
 
         $surat->pembuat?->notify(new Pemberitahuan(
             "Surat tugas perlu revisi: {$surat->perihal}",
