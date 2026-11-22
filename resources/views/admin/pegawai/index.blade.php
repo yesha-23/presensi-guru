@@ -234,13 +234,20 @@
                 @error('status') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
 
-            {{-- Khusus edit: reset kata sandi (kata sandi tidak diisi saat edit) --}}
+            {{-- Khusus edit: reset kata sandi, administrator mengetik sandi baru --}}
             <div data-hanya-edit class="hidden sm:col-span-2">
-                <span class="{{ $kelasLabel }}">Kata sandi</span>
-                <button type="submit" form="form-reset-sandi"
-                        class="mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-garis py-2.5 text-sm font-semibold hover:bg-gray-50">
-                    <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Reset kata sandi
-                </button>
+                <span class="{{ $kelasLabel }}">Reset kata sandi</span>
+                <div class="mt-1 flex gap-2">
+                    <input type="text" name="kata_sandi_baru" form="form-reset-sandi" minlength="8" maxlength="64"
+                           autocomplete="new-password" placeholder="Ketik kata sandi baru (min. 8 karakter)"
+                           class="{{ $kelasInput }} mt-0 flex-1 font-mono">
+                    <button type="submit" form="form-reset-sandi"
+                            class="flex shrink-0 items-center gap-2 rounded-xl border border-garis px-4 py-2.5 text-sm font-semibold hover:bg-gray-50">
+                        <i data-lucide="rotate-ccw" class="h-4 w-4"></i> Simpan sandi
+                    </button>
+                </div>
+                <p class="mt-1 text-xs font-normal text-gray-500">Sampaikan kata sandi baru kepada pegawai. Pegawai akan keluar dari semua perangkat.</p>
+                @error('kata_sandi_baru') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </div>
 
             {{-- Peran akses --}}
@@ -294,7 +301,7 @@
 </dialog>
 
 {{-- Form reset kata sandi (di luar form utama karena form tidak boleh bersarang) --}}
-<form id="form-reset-sandi" method="POST" class="hidden">@csrf</form>
+<form id="form-reset-sandi" method="POST" class="hidden">@csrf<input type="hidden" name="_id"></form>
 
 {{-- ================= POPUP HAPUS ================= --}}
 <dialog id="modal-hapus" class="m-auto w-[calc(100%-2rem)] max-w-xl rounded-3xl p-0 backdrop:bg-gray-900/60">
@@ -409,7 +416,12 @@
         }
 
         document.getElementById('kotak-hapus').classList.toggle('hidden', tambah || data.status !== 'Keluar');
-        if (!tambah) formReset.action = data.url_reset;
+        if (!tambah) {
+            formReset.action = data.url_reset;
+            formReset.elements['_id'].value = data.id;
+            const isianSandi = document.querySelector('[name="kata_sandi_baru"]');
+            if (!@json($errors->has('kata_sandi_baru'))) isianSandi.value = '';
+        }
     }
 
     function isi(data) {
@@ -463,7 +475,7 @@
         tombol.addEventListener('click', () => tombol.closest('dialog').close()));
 
     formReset.addEventListener('submit', (e) => {
-        if (!confirm(`Reset kata sandi ${dataAktif?.nama_lengkap}? Kata sandi baru akan ditampilkan satu kali.`)) {
+        if (!confirm(`Ganti kata sandi ${dataAktif?.nama_lengkap} dengan kata sandi yang Anda ketik?`)) {
             e.preventDefault();
         }
     });

@@ -115,14 +115,22 @@ class PegawaiController extends Controller
 
     public function resetSandi(Request $request, User $pegawai)
     {
-        $kataSandi = PegawaiService::buatKataSandi();
-        $pegawai->update(['password' => $kataSandi]);
+        // Administrator mengetik sendiri kata sandi baru, lalu menyampaikannya kepada pegawai
+        $validator = Validator::make($request->all(), [
+            'kata_sandi_baru' => ['required', 'string', 'min:8', 'max:64'],
+        ], [], ['kata_sandi_baru' => 'Kata sandi baru']);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput(['_id' => $pegawai->id])->with('modal', 'edit');
+        }
+
+        $pegawai->update(['password' => $validator->validated()['kata_sandi_baru']]);
 
         if (! $pegawai->is($request->user())) {
             DB::table('sessions')->where('user_id', $pegawai->id)->delete();
         }
 
-        return back()->with('sukses', "Kata sandi baru untuk {$pegawai->nama_lengkap}: {$kataSandi} (sampaikan ke pegawai yang bersangkutan).");
+        return back()->with('sukses', "Kata sandi {$pegawai->nama_lengkap} berhasil diganti. Sampaikan kata sandi baru kepada pegawai yang bersangkutan.");
     }
 
     public function destroy(Request $request, User $pegawai)
