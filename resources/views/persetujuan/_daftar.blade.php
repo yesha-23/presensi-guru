@@ -2,10 +2,16 @@
     Daftar pengajuan yang menunggu (tampilan awal setiap tab).
     $baris : koleksi [url, jenis, warna, judul, ket, diajukan (Carbon), penanda (opsional)]
     $kosong: pesan bila tidak ada pengajuan
+    $urutan: keterangan urutan daftar (opsional)
 --}}
 @if ($baris->isEmpty())
     @include('persetujuan._kosong', ['pesan' => $kosong])
 @else
+    @if (! empty($urutan))
+        <p class="mb-2 flex items-center gap-1.5 text-xs text-gray-500">
+            <i data-lucide="arrow-down-up" class="h-3.5 w-3.5"></i> {{ $urutan }}
+        </p>
+    @endif
     <div class="overflow-hidden rounded-2xl border border-garis bg-white">
         <div class="divide-y divide-garis">
             @foreach ($baris as $b)

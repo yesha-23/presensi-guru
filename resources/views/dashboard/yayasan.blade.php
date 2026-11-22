@@ -16,20 +16,37 @@
         <div class="min-w-0 rounded-2xl border border-garis bg-white p-5 lg:flex-1">
             <div class="flex items-center justify-between">
                 <span class="text-lg font-bold">{{ $x['unit']->label() }}</span>
-                <span class="text-sm text-gray-500">{{ $r['total'] }} pegawai</span>
+                <span class="text-sm text-gray-500">{{ $x['hariKerja'] ? $r['total'] : $x['jumlahPegawai'] }} pegawai</span>
             </div>
-            <div class="mt-2 text-4xl font-extrabold">{{ $r['hadir'] }} <span class="text-xl font-semibold text-gray-500">/ {{ $r['total'] }} hadir</span></div>
-            <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
-                <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Terlambat</span><b class="text-orange-800">{{ $r['terlambat'] }}</b></div>
-                <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Izin/Sakit</span><b>{{ $r['izin_sakit'] }}</b></div>
-                <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Tugas khusus</span><b>{{ $r['tugas'] }}</b></div>
-                <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Belum</span><b class="text-merah">{{ $r['belum'] }}</b></div>
-            </div>
+
+            @if ($x['hariKerja'])
+                <div class="mt-2 text-4xl font-extrabold">{{ $r['hadir'] }} <span class="text-xl font-semibold text-gray-500">/ {{ $r['total'] }} hadir</span></div>
+                <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Terlambat</span><b class="text-orange-800">{{ $r['terlambat'] }}</b></div>
+                    <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Izin/Sakit</span><b>{{ $r['izin_sakit'] }}</b></div>
+                    <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Tugas khusus</span><b>{{ $r['tugas'] }}</b></div>
+                    <div class="flex justify-between rounded-lg bg-krem px-3 py-1.5"><span>Belum</span><b class="text-merah">{{ $r['belum'] }}</b></div>
+                </div>
+            @else
+                {{-- C3: unit libur / bukan hari kerja --}}
+                <div class="mt-2 flex items-center gap-2 text-2xl font-extrabold text-gray-400">
+                    <i data-lucide="calendar-off" class="h-6 w-6"></i> Bukan hari kerja
+                </div>
+                <p class="mt-1 text-sm text-gray-500">{{ $x['keterangan'] }}. Tidak ada kewajiban presensi.</p>
+                @if ($r['tugas'] > 0 || $r['izin_sakit'] > 0)
+                    <p class="mt-3 rounded-lg bg-krem px-3 py-1.5 text-sm">
+                        @if ($r['tugas'] > 0) Tugas khusus: <b>{{ $r['tugas'] }}</b> @endif
+                        @if ($r['tugas'] > 0 && $r['izin_sakit'] > 0) · @endif
+                        @if ($r['izin_sakit'] > 0) Izin/Sakit: <b>{{ $r['izin_sakit'] }}</b> @endif
+                    </p>
+                @endif
+            @endif
         </div>
     @endforeach
 </div>
 
-<div class="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
+{{-- B4: kartu tanda tangan sejajar dan setinggi kartu kehadiran bulanan --}}
+<div class="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-stretch">
     {{-- Kehadiran bulan ini per unit --}}
     <div class="rounded-2xl border border-garis bg-white p-5">
         <h2 class="font-bold">Kehadiran {{ $bulanLabel }} per unit</h2>
@@ -54,18 +71,38 @@
     </div>
 
     {{-- Menunggu tanda tangan --}}
-    @if ($suratMenunggu->isNotEmpty())
-        @php $s = $suratMenunggu->first(); @endphp
-        <div class="rounded-2xl bg-yellow-50 p-5">
-            <div class="text-xs font-bold uppercase text-yellow-900">Menunggu tanda tangan Anda</div>
-            <div class="mt-1 text-lg font-extrabold">{{ $suratMenunggu->count() }} surat tugas luar kota / kasus khusus</div>
-            <div class="text-sm text-gray-700">{{ $s->perihal }} · {{ $s->pegawai->count() }} pegawai · {{ $s->rentangTanggal() }}</div>
+    <div class="flex flex-col rounded-2xl border border-garis bg-white p-5">
+        <div class="flex items-center justify-between">
+            <h2 class="font-bold">Menunggu tanda tangan Anda</h2>
+            <span class="rounded-full {{ $suratMenunggu->isNotEmpty() ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-500' }} px-2.5 py-0.5 text-sm font-bold">
+                {{ $suratMenunggu->count() }}
+            </span>
+        </div>
+        <p class="text-xs text-gray-500">Surat tugas luar kota / kasus khusus · tanggal pelaksanaan terdekat di atas</p>
+
+        @if ($suratMenunggu->isNotEmpty())
+            @php $s = $suratMenunggu->first(); @endphp
+            <div class="mt-4 rounded-xl bg-yellow-50 p-3">
+                <div class="font-semibold">{{ $s->perihal }}</div>
+                <div class="text-sm text-gray-700">{{ $s->pegawai->count() }} pegawai · {{ $s->rentangTanggal() }}</div>
+                @if ($suratMenunggu->count() > 1)
+                    <div class="mt-1 text-xs text-gray-500">dan {{ $suratMenunggu->count() - 1 }} surat lainnya</div>
+                @endif
+            </div>
+            <div class="flex-1"></div>
             <a href="{{ route('persetujuan', ['tab' => 'surat', 'id' => $s->id]) }}"
-               class="mt-3 block rounded-xl bg-merah py-2.5 text-center text-sm font-bold text-white hover:bg-merah-tua">
+               class="mt-4 block rounded-xl bg-merah py-2.5 text-center text-sm font-bold text-white hover:bg-merah-tua">
                 Tinjau surat tugas
             </a>
-        </div>
-    @endif
+        @else
+            <p class="mt-4 text-sm text-gray-500">Tidak ada surat tugas yang menunggu tanda tangan Anda.</p>
+            <div class="flex-1"></div>
+            <a href="{{ route('persetujuan', ['tab' => 'surat']) }}"
+               class="mt-4 block rounded-xl border border-merah py-2.5 text-center text-sm font-bold text-merah hover:bg-merah-muda">
+                Buka daftar persetujuan
+            </a>
+        @endif
+    </div>
 </div>
 
 @include('dashboard._segarkan')

@@ -37,6 +37,7 @@
     @else
         @include('persetujuan._daftar', [
             'kosong' => 'Tidak ada pengajuan lembur yang menunggu keputusan Anda.',
+            'urutan' => 'Diurutkan dari tanggal pelaksanaan terdekat',
             'baris'  => $menungguLembur->map(fn ($l) => [
                 'url'      => route('persetujuan', ['tab' => 'lembur', 'id' => $l->id]),
                 'jenis'    => 'Lembur',
@@ -70,6 +71,7 @@
         @endif
         @include('persetujuan._daftar', [
             'kosong' => 'Tidak ada surat tugas yang menunggu tanda tangan Anda.',
+            'urutan' => 'Diurutkan dari tanggal pelaksanaan terdekat',
             'baris'  => $menungguSurat->map(fn ($s) => [
                 'url'      => route('persetujuan', ['tab' => 'surat', 'id' => $s->id]),
                 'jenis'    => 'Surat tugas'.($s->kasus_khusus ? ' · Luar kota / kasus khusus' : ''),
@@ -102,6 +104,7 @@
     @else
         @include('persetujuan._daftar', [
             'kosong' => 'Tidak ada koreksi presensi administrator yang menunggu persetujuan Anda.',
+            'urutan' => 'Diurutkan dari waktu diajukan (terlama di atas)',
             'baris'  => $menungguKoreksi->map(fn ($log) => [
                 'url'      => route('persetujuan', ['tab' => 'koreksi', 'id' => $log->id]),
                 'jenis'    => 'Koreksi presensi',
@@ -121,6 +124,7 @@
     @else
         @include('persetujuan._daftar', [
             'kosong' => 'Tidak ada pengajuan izin atau sakit yang menunggu keputusan Anda.',
+            'urutan' => 'Diurutkan dari tanggal pelaksanaan terdekat',
             'baris'  => $menunggu->map(fn ($p) => [
                 'url'      => route('persetujuan', ['tab' => 'izin', 'id' => $p->id]),
                 'jenis'    => $p->jenis.$p->labelWaktu(),

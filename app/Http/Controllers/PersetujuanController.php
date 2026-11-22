@@ -38,15 +38,16 @@ class PersetujuanController extends Controller
         $boleh = fn ($p) => $p->user && $this->persetujuan->bolehMenyetujui($penyetuju, $p->user);
 
         // Hanya pengajuan yang menjadi wewenang pengguna yang sedang login
+        // Urut dari tanggal pelaksanaan terdekat; bila sama, yang diajukan lebih dulu di atas
         $menunggu = PengajuanIzin::with(['user.unit', 'user.roles'])
-            ->where('status', 'Menunggu')->oldest()->get()->filter($boleh)->values();
+            ->where('status', 'Menunggu')->orderBy('tanggal_mulai')->oldest()->get()->filter($boleh)->values();
 
         $menungguLembur = Lembur::with(['user.unit', 'user.roles'])
-            ->where('status', 'Menunggu')->oldest()->get()->filter($boleh)->values();
+            ->where('status', 'Menunggu')->orderBy('tanggal')->orderBy('jam_mulai')->oldest()->get()->filter($boleh)->values();
 
         $layananSurat = app(SuratTugasService::class);
         $menungguSurat = SuratTugas::with(['pegawai.unit', 'persetujuan.penyetuju', 'pembuat'])
-            ->where('status', 'Menunggu')->oldest()->get()
+            ->where('status', 'Menunggu')->orderBy('tanggal_mulai')->oldest()->get()
             ->filter(fn ($s) => $layananSurat->bolehMemproses($penyetuju, $s))->values();
         
         $layananKoreksi = app(KoreksiPresensiService::class);

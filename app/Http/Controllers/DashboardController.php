@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KalenderEvent;
 use App\Models\Lembur;
 use App\Models\LogKoreksi;
 use App\Models\PengajuanIzin;
@@ -9,6 +10,7 @@ use App\Models\Pengaturan;
 use App\Models\Presensi;
 use App\Models\SuratTugas;
 use App\Models\Unit;
+use App\Services\KalenderService;
 use App\Services\KehadiranService;
 use App\Services\RekapService;
 use App\Services\SuratTugasService;
@@ -64,15 +66,31 @@ class DashboardController extends Controller
     }
 
     /** Ketua yayasan: ringkasan seluruh unit (UR-26, UR-27). */
-    public function yayasan(Request $request, RekapService $rekap, SuratTugasService $layananSurat)
+    public function yayasan(Request $request, RekapService $rekap, SuratTugasService $layananSurat, KalenderService $kalender)
     {
         $units = Unit::orderBy('id')->get();
         $semua = $this->kehadiran->hariIni();
+        $hariIni = today();
 
-        $perUnit = $units->map(fn ($u) => [
-            'unit'    => $u,
-            'ringkas' => KehadiranService::ringkas($semua->filter(fn ($r) => $r['user']->unit_id === $u->id)),
-        ])->filter(fn ($x) => $x['ringkas']['total'] > 0 || $semua->contains(fn ($r) => $r['user']->unit_id === $x['unit']->id));
+        // C3: unit yang hari ini libur / bukan hari kerja ditandai, bukan ditampilkan "0 / 0 hadir"
+        $perUnit = $units->map(function ($u) use ($semua, $kalender, $hariIni) {
+            $daftarUnit = $semua->filter(fn ($r) => $r['user']->unit_id === $u->id);
+            $entri = $kalender->entri($u->id, $hariIni, $hariIni);
+            $jenis = $kalender->jenisHari($hariIni, $entri);
+            $libur = $entri->where('berlaku_untuk', 'Guru dan Staf')->whereIn('kategori', KalenderEvent::KATEGORI_LIBUR)->first();
+
+            return [
+                'unit'          => $u,
+                'ringkas'       => KehadiranService::ringkas($daftarUnit),
+                'jumlahPegawai' => $daftarUnit->count(),
+                'hariKerja'     => in_array($jenis, ['kerja', 'hkt'], true),
+                'keterangan'    => match ($jenis) {
+                    'libur'    => 'Libur: '.($libur?->nama ?? 'kalender akademik'),
+                    'nonkerja' => 'Hari '.$hariIni->translatedFormat('l').' bukan hari kerja',
+                    default    => null,
+                },
+            ];
+        })->filter(fn ($x) => $x['jumlahPegawai'] > 0)->values();
 
         // Kehadiran bulan ini per unit (bulan lalu bila bulan ini belum ada hari efektif)
         $mulai = today()->startOfMonth();
@@ -93,7 +111,7 @@ class DashboardController extends Controller
         })->filter(fn ($x) => $x['persen'] !== null)->values();
 
         $suratMenunggu = SuratTugas::with(['persetujuan', 'pegawai.unit'])
-            ->where('status', 'Menunggu')->oldest()->get()
+            ->where('status', 'Menunggu')->orderBy('tanggal_mulai')->oldest()->get()
             ->filter(fn ($s) => $layananSurat->bolehMemproses($request->user(), $s))->values();
 
         return view('dashboard.yayasan', [
