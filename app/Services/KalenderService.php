@@ -31,10 +31,7 @@ class KalenderService
         return array_map('intval', array_map('trim', explode(',', (string) Pengaturan::ambil('hari_kerja', '1,2,3,4,5'))));
     }
 
-    /**
-     * Jenis hari bagi guru & staf: 'hkt', 'kerja', 'libur', atau 'nonkerja'.
-     * Aturannya sama dengan JadwalService: HKT menang, lalu hari kerja, lalu libur.
-     */
+    /** Jenis hari guru & staf: 'hkt', 'kerja', 'libur', atau 'nonkerja' (HKT menang, lalu hari kerja, lalu libur). */
     public function jenisHari(Carbon $tanggal, Collection $entri): string
     {
         $berlaku = $entri->filter(fn ($e) => $e->berlaku_untuk === 'Guru dan Staf'

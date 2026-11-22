@@ -42,10 +42,7 @@ class RekapService
         return max(1, min(28, (int) Pengaturan::ambil('awal_periode_rekap_'.$unit->kode, $bawaan)));
     }
 
-    /**
-     * Pegawai unit Yayasan yang ikut ditampilkan di rekap SD / KB-TK beserta kelompoknya.
-     * Bentuk: [user_id => ['SD' => 'Staf'|'Guru'|'', 'KBTK' => ...]]
-     */
+    /* Pegawai unit Yayasan yang ikut ditampilkan di rekap SD / KB-TK beserta kelompoknya. Bentuk: [user_id => ['SD' => 'Staf'|'Guru'|'', 'KBTK' => ...]] */
     public static function tampilanYayasan(): array
     {
         $data = json_decode((string) Pengaturan::ambil('rekap_pegawai_yayasan', '{}'), true);
