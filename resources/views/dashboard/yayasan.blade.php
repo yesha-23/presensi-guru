@@ -70,11 +70,20 @@
         <a href="{{ route('pkg') }}" class="mt-4 inline-block text-sm font-semibold text-merah underline">Buka laporan PKG per guru</a>
     </div>
 
-    {{-- Menunggu tanda tangan (gaya lama, setinggi kartu kehadiran) --}}
-    <div class="flex flex-col rounded-2xl bg-yellow-50 p-5">
-        <div class="text-xs font-bold uppercase text-yellow-900">Menunggu tanda tangan Anda</div>
+        {{-- Menunggu tanda tangan: kuning bila ada surat, putih bila kosong; setinggi kartu kehadiran --}}
+    @php $adaSurat = $suratMenunggu->isNotEmpty(); @endphp
+    <div class="flex flex-col rounded-2xl p-5 {{ $adaSurat ? 'bg-yellow-50' : 'border border-garis bg-white' }}">
+        <div class="flex items-center justify-between gap-3">
+            <div class="text-xs font-bold uppercase {{ $adaSurat ? 'text-yellow-900' : 'text-gray-500' }}">
+                Menunggu tanda tangan Anda
+            </div>
+            <span class="rounded-full px-2.5 py-0.5 text-sm font-bold {{ $adaSurat ? 'bg-yellow-200 text-yellow-900' : 'bg-gray-100 text-gray-500' }}"
+                  title="Jumlah surat yang menunggu tanda tangan Anda">
+                {{ $suratMenunggu->count() }}
+            </span>
+        </div>
 
-        @if ($suratMenunggu->isNotEmpty())
+        @if ($adaSurat)
             @php $s = $suratMenunggu->first(); @endphp
             <div class="mt-1 text-lg font-extrabold">{{ $suratMenunggu->count() }} surat tugas luar kota / kasus khusus</div>
             <div class="text-sm text-gray-700">{{ $s->perihal }} · {{ $s->pegawai->count() }} pegawai · {{ $s->rentangTanggal() }}</div>
@@ -88,10 +97,10 @@
             </a>
         @else
             <div class="mt-1 text-lg font-extrabold">Tidak ada surat tugas</div>
-            <div class="text-sm text-gray-700">Belum ada surat tugas luar kota / kasus khusus yang menunggu tanda tangan Anda.</div>
+            <div class="text-sm text-gray-500">Belum ada surat tugas luar kota / kasus khusus yang menunggu tanda tangan Anda.</div>
             <div class="flex-1"></div>
             <a href="{{ route('persetujuan', ['tab' => 'surat']) }}"
-               class="mt-3 block rounded-xl bg-merah py-2.5 text-center text-sm font-bold text-white hover:bg-merah-tua">
+               class="mt-3 block rounded-xl border border-merah py-2.5 text-center text-sm font-bold text-merah hover:bg-merah-muda">
                 Buka daftar persetujuan
             </a>
         @endif
