@@ -94,6 +94,8 @@
                             'kasus_khusus' => $s->kasus_khusus, 'lampiran' => (bool) $s->lampiran_path,
                             'url_update' => route('admin.surat-tugas.update', $s),
                             'status' => $s->status,
+                            'catatan_revisi' => $s->catatan_revisi,
+                            'catatan_perbaikan' => $s->catatan_perbaikan,
                         ];
                         $namaPegawai = $s->pegawai->count() === 1
                             ? $s->pegawai->first()->nama_lengkap
