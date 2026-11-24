@@ -63,6 +63,7 @@ class KalenderController extends Controller
             'hari'           => $hari,
             'entri'          => $entri,
             'efektif'        => $this->kalender->hariEfektif($unit->id, $bulan, $akhir),
+            'labelHariKerja' => $this->kalender->labelHariKerja(),
             'semesters'      => $semesters,
             'semesterAktif'  => $semesters->first(fn ($s) => $bulan->between($s->tanggal_mulai->copy()->startOfMonth(), $s->tanggal_selesai)),
             'daftarKategori' => KalenderService::KATEGORI,
@@ -138,7 +139,9 @@ class KalenderController extends Controller
             Arr::only($data, ['tanggal_mulai', 'tanggal_selesai'])
         );
 
-        return back()->with('sukses', "Semester {$data['jenis']} {$data['tahun_ajaran']} disimpan.");
+        $nomor = $data['jenis'] === 'Genap' ? 2 : 1;
+
+        return back()->with('sukses', "Semester {$nomor} Tahun Ajaran {$data['tahun_ajaran']} disimpan.");
     }
 
     private function validasi(Request $request, string $mode): array

@@ -180,7 +180,7 @@ class RekapController extends Controller
 
         $label = match ($jenis) {
             'mingguan' => 'Minggu '.$mulai->translatedFormat('j M').' – '.$selesai->translatedFormat('j M Y'),
-            'semester' => "Semester {$semester->jenis} {$semester->tahun_ajaran} (".$mulai->translatedFormat('j M Y').' – '.$selesai->translatedFormat('j M Y').')',
+            'semester' => $semester->label().' ('.$mulai->translatedFormat('j M Y').' – '.$selesai->translatedFormat('j M Y').')',
             'rentang'  => $mulai->translatedFormat('j M Y').' – '.$selesai->translatedFormat('j M Y'),
             default    => $mulai->day === 1
                 ? $mulai->translatedFormat('j').'–'.$selesai->translatedFormat('j F Y')

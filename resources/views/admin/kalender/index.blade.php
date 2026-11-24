@@ -33,7 +33,7 @@
         <h1 class="text-2xl font-extrabold lg:text-3xl">Kalender Akademik</h1>
         <p class="text-sm text-gray-500">
             @if ($semesterAktif)
-                Tahun ajaran {{ $semesterAktif->tahun_ajaran }} · Semester {{ $semesterAktif->jenis === 'Ganjil' ? '1' : '2' }}:
+                {{ $semesterAktif->label() }}:
                 {{ $semesterAktif->tanggal_mulai->translatedFormat('j F') }} – {{ $semesterAktif->tanggal_selesai->translatedFormat('j F Y') }}
             @else
                 Bulan ini di luar periode semester yang tercatat
@@ -131,7 +131,7 @@
             <div class="text-sm text-white/80">Hari efektif guru & staf · {{ $unit->label() }}</div>
             <div class="mt-1 text-4xl font-extrabold">{{ $efektif['total'] }} hari</div>
             <div class="mt-1 text-sm text-white/80">
-                {{ $efektif['kerja'] + $efektif['libur'] }} hari Senin–Jumat
+                {{ $efektif['kerja'] + $efektif['libur'] }} hari {{ $labelHariKerja }}
                 @if ($efektif['libur']) − {{ $efektif['libur'] }} libur @endif
                 @if ($efektif['hkt']) + {{ $efektif['hkt'] }} hari kerja tambahan @endif
             </div>
@@ -196,7 +196,7 @@
                     <button type="button"
                             data-semester="{{ json_encode(['tahun_ajaran' => $s->tahun_ajaran, 'jenis' => $s->jenis, 'tanggal_mulai' => $s->tanggal_mulai->toDateString(), 'tanggal_selesai' => $s->tanggal_selesai->toDateString()]) }}"
                             class="flex w-full items-center justify-between rounded-xl bg-krem px-3 py-2 text-left text-sm hover:bg-gray-100">
-                        <span><b>{{ $s->jenis }} {{ $s->tahun_ajaran }}</b></span>
+                        <span><b>{{ $s->label() }}</b></span>
                         <span class="text-gray-500">{{ $s->tanggal_mulai->translatedFormat('j M Y') }} – {{ $s->tanggal_selesai->translatedFormat('j M Y') }}</span>
                     </button>
                 @empty
@@ -317,8 +317,8 @@
             </label>
             <label class="{{ $kelasLabel }}">Semester
                 <select name="jenis" class="{{ $kelasInput }}">
-                    <option @selected(old('jenis') === 'Ganjil')>Ganjil</option>
-                    <option @selected(old('jenis') === 'Genap')>Genap</option>
+                    <option value="Ganjil" @selected(old('jenis') === 'Ganjil')>Semester 1</option>
+                    <option value="Genap" @selected(old('jenis') === 'Genap')>Semester 2</option>
                 </select>
             </label>
             <label class="{{ $kelasLabel }}">Tanggal mulai

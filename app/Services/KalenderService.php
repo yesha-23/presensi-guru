@@ -31,6 +31,28 @@ class KalenderService
         return array_map('intval', array_map('trim', explode(',', (string) Pengaturan::ambil('hari_kerja', '1,2,3,4,5'))));
     }
 
+    /** Label hari kerja dari pengaturan (B7): "Senin–Jumat", "Senin–Kamis", "Senin, Rabu, dan Jumat". */
+    public function labelHariKerja(): string
+    {
+        $nama = [1 => 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+        $hari = collect($this->hariKerja())->filter(fn ($h) => isset($nama[$h]))->unique()->sort()->values();
+
+        if ($hari->isEmpty()) {
+            return '-';
+        }
+
+        $berurutan = $hari->last() - $hari->first() === $hari->count() - 1;
+        if ($berurutan && $hari->count() >= 3) {
+            return $nama[$hari->first()].'–'.$nama[$hari->last()];
+        }
+
+        $teks = $hari->map(fn ($h) => $nama[$h]);
+
+        return $teks->count() <= 2
+            ? $teks->implode(' dan ')
+            : $teks->slice(0, -1)->implode(', ').', dan '.$teks->last();
+    }
+
     /** Jenis hari guru & staf: 'hkt', 'kerja', 'libur', atau 'nonkerja' (HKT menang, lalu hari kerja, lalu libur). */
     public function jenisHari(Carbon $tanggal, Collection $entri): string
     {

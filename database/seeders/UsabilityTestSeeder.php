@@ -317,7 +317,7 @@ class UsabilityTestSeeder extends Seeder
         $c->line('P7 : Ria Irawari terlambat ' . $telat->count() . ' kali pada Oktober 2026'
             . ($telat->isNotEmpty() ? ' (' . $telat->map(fn ($p) => Carbon::parse($p->tanggal)->format('d') . ' ' . substr($p->jam_datang, 0, 5))->implode(', ') . ')' : ''));
         $c->line('K6 : baca TLAT Ria Irawari di Rekap Bulanan SD Oktober 2026, catat di lembar observasi');
-        $c->line('K8 : baca persentase kehadiran Ria Irawari di Laporan PKG Ganjil 2026/2027');
+        $c->line('K8 : baca persentase kehadiran Ria Irawari di Laporan PKG Semester 1 Tahun Ajaran 2026/2027');
 
         $c->newLine();
         $c->info('--- PERIKSA ---');
