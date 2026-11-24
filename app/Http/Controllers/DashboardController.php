@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Console\Commands\TutupHariPresensi;
 use App\Models\KalenderEvent;
 use App\Models\Lembur;
 use App\Models\LogKoreksi;
@@ -14,6 +15,7 @@ use App\Services\KalenderService;
 use App\Services\KehadiranService;
 use App\Services\RekapService;
 use App\Services\SuratTugasService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -37,7 +39,23 @@ class DashboardController extends Controller
             'daftar'       => $daftar->where('status', '!=', 'Libur')->take(8),
             'menunggu'     => $this->menungguPersetujuan(),
             'jamPengingat' => Pengaturan::ambil('jam_pengingat_datang', '06:45'),
+            'tutupTerakhir' => $this->tutupTerakhir(),
         ]);
+    }
+
+    /**
+     * Hari terakhir yang sudah ditutup penjadwal (null = belum pernah).
+     * Tertinggal = sebelum kemarin, artinya penjadwal kemungkinan tidak berjalan.
+     */
+    private function tutupTerakhir(): array
+    {
+        $nilai = Pengaturan::ambil(TutupHariPresensi::KUNCI_TERAKHIR);
+        $tanggal = $nilai ? Carbon::parse($nilai)->startOfDay() : null;
+
+        return [
+            'tanggal'    => $tanggal,
+            'tertinggal' => ! $tanggal || $tanggal->lt(today()->subDay()),
+        ];
     }
 
     /** Kepala sekolah: pantau kehadiran unitnya secara real-time (UR-23). */

@@ -6,6 +6,23 @@
     <div>
         <h1 class="text-2xl font-extrabold lg:text-3xl">Kehadiran hari ini</h1>
         <p class="text-sm text-gray-500">{{ now()->translatedFormat('l, j F Y') }} · diperbarui {{ now()->format('H.i') }} WIB</p>
+
+        {{-- Hari terakhir ditutup penjadwal (perbaikan no. 9) --}}
+        @if ($tutupTerakhir['tertinggal'])
+            <p class="mt-1 inline-flex items-start gap-1.5 rounded-lg bg-yellow-50 px-2.5 py-1 text-xs text-yellow-900">
+                <i data-lucide="triangle-alert" class="mt-0.5 h-3.5 w-3.5 shrink-0"></i>
+                <span>
+                    Hari terakhir ditutup:
+                    <b>{{ $tutupTerakhir['tanggal']?->translatedFormat('l, j F Y') ?? 'belum pernah' }}</b>.
+                    Penjadwal mungkin tidak berjalan; hari yang terlewat (maks. 7 hari) ditutup otomatis saat penjadwal aktif kembali.
+                </span>
+            </p>
+        @else
+            <p class="mt-1 inline-flex items-center gap-1.5 text-xs text-gray-500">
+                <i data-lucide="circle-check" class="h-3.5 w-3.5"></i>
+                Hari terakhir ditutup: {{ $tutupTerakhir['tanggal']->translatedFormat('l, j F Y') }}
+            </p>
+        @endif
     </div>
     <div class="hidden lg:block">@include('partials.lonceng')</div>
 </div>

@@ -14,5 +14,9 @@ Schedule::command('presensi:pengingat')->everyFiveMinutes()->between('05:00', '2
 // Tutup hari: tetapkan Alpa, Izin, Sakit, Tugas Khusus, Libur (SR-F15)
 Schedule::command('presensi:tutup-hari')->dailyAt('23:55')->withoutOverlapping();
 
+// Tutup hari susulan: hari yang terlewat karena komputer/server mati (maks 7 hari)
+// ditutup otomatis begitu penjadwal berjalan lagi
+Schedule::command('presensi:tutup-hari --susulan')->hourly()->between('06:00', '22:00')->withoutOverlapping();
+
 // Rekap mingguan untuk rapat evaluasi hari Senin (SR-F27)
 Schedule::command('presensi:rekap-mingguan')->weeklyOn(0, '06:00')->withoutOverlapping();
