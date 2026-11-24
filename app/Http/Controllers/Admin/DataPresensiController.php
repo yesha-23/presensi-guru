@@ -9,6 +9,7 @@ use App\Models\Role;
 use App\Models\Unit;
 use App\Models\User;
 use App\Notifications\Pemberitahuan;
+use App\Services\JadwalService;
 use App\Services\KoreksiPresensiService;
 use App\Services\PersetujuanService;
 use Carbon\Carbon;
@@ -27,7 +28,7 @@ class DataPresensiController extends Controller
         'Izin', 'Sakit', 'Tugas Khusus', 'Alpa', 'Libur', 'Belum Presensi',
     ];
 
-    public function __construct(private KoreksiPresensiService $koreksi)
+    public function __construct(private KoreksiPresensiService $koreksi, private JadwalService $jadwal)
     {
     }
 
@@ -42,14 +43,15 @@ class DataPresensiController extends Controller
             'tanggal'      => $tanggal,
             'filter'       => $filter,
             'pegawai'      => $pegawai,
+            // B6: true = hari kerja bagi pegawai itu (termasuk Hari Kerja Tambahan); false = libur / bukan hari kerja
+            'hariKerja'    => $pegawai->getCollection()
+                ->mapWithKeys(fn ($u) => [$u->id => $this->jadwal->jadwal($u, $tanggal->copy()) !== null])->all(),
             'units'        => Unit::orderBy('id')->get(),
             'daftarStatus' => self::FILTER_STATUS,
             'statusEdit'   => KoreksiPresensiService::STATUS,
             // Presensi yang sedang menunggu persetujuan koreksi: tombol Edit dinonaktifkan
-            'menunggu'     => LogKoreksi::where('target_type', Presensi::class)
-                ->where('status_persetujuan', 'Menunggu')->pluck('target_id')->all(),
-            'log'          => LogKoreksi::with(['pengubah', 'target.user'])
-                ->where('target_type', Presensi::class)->latest()->limit(10)->get(),
+            'menunggu'     => LogKoreksi::where('target_type', Presensi::class)->where('status_persetujuan', 'Menunggu')->pluck('target_id')->all(),
+            'log'          => LogKoreksi::with(['pengubah', 'target.user'])->where('target_type', Presensi::class)->latest()->limit(10)->get(),
         ]);
     }
 
@@ -81,6 +83,15 @@ class DataPresensiController extends Controller
         // Validasi konsistensi (catatan activity diagram 5.8)
         $validator->after(function ($v) use ($request) {
             if ($v->errors()->hasAny(['status_harian', 'jam_datang', 'jam_pulang', 'user_id', 'tanggal'])) {
+                return;
+            }
+
+            // B6: presensi pada hari libur / bukan hari kerja tidak dapat diedit (kecuali Hari Kerja Tambahan)
+            $pegawai = User::withTrashed()->find($request->input('user_id'));
+            if ($pegawai && $this->jadwal->jadwal($pegawai, Carbon::parse($request->input('tanggal'))) === null) {
+                $v->errors()->add('status_harian', 'Tanggal ini bukan hari kerja bagi pegawai tersebut, sehingga presensinya tidak dapat diedit. '
+                    .'Bila pegawai memang wajib masuk, tetapkan tanggal itu sebagai Hari Kerja Tambahan di Kalender Akademik.');
+
                 return;
             }
 

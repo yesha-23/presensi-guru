@@ -80,6 +80,19 @@
     </a>
 </form>
 
+{{-- B6: keterangan bila ada pegawai yang tanggal ini bukan hari kerja --}}
+@php $adaLibur = in_array(false, $hariKerja, true); @endphp
+@if ($adaLibur)
+    <div class="mt-4 flex items-start gap-2 rounded-2xl bg-gray-100 px-4 py-3 text-sm text-gray-700">
+        <i data-lucide="calendar-off" class="mt-0.5 h-4 w-4 shrink-0"></i>
+        <span>
+            {{ $tanggal->translatedFormat('l, j F Y') }} {{ in_array(true, $hariKerja, true) ? 'bukan hari kerja bagi sebagian pegawai' : 'bukan hari kerja' }}.
+            Pegawai yang tidak bertugas berstatus <b>Libur</b>, dan presensinya tidak dapat diedit kecuali tanggal ini
+            ditetapkan sebagai <b>Hari Kerja Tambahan</b> di Kalender Akademik.
+        </span>
+    </div>
+@endif
+
 {{-- ================= TABEL ================= --}}
 <div class="mt-4 overflow-hidden rounded-2xl border border-garis bg-white">
     <div class="overflow-x-auto">
@@ -102,6 +115,15 @@
                         $statusDatang = DP::statusDatang($p, $tanggal);
                         $statusPulang = DP::statusPulang($p, $tanggal);
                         $sedangMenunggu = $p && in_array($p->id, $menunggu, true);
+                        $bukanHariKerja = ! ($hariKerja[$u->id] ?? true);
+                        if ($bukanHariKerja && in_array($statusDatang, ['—', 'Belum Presensi'], true)) {
+                            $statusDatang = 'Libur';
+                        }
+                        $judulEdit = match (true) {
+                            $bukanHariKerja => 'Bukan hari kerja: presensi tidak dapat diedit',
+                            $sedangMenunggu => 'Menunggu persetujuan kepala sekolah',
+                            default         => 'Edit presensi',
+                        };
                         $dataJs = [
                             'user_id'         => $u->id,
                             'nama'            => $u->nama_lengkap,
@@ -142,9 +164,9 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <button type="button" data-edit data-id="{{ $u->id }}" data-presensi='@json($dataJs)' @disabled($sedangMenunggu)
+                            <button type="button" data-edit data-id="{{ $u->id }}" data-presensi='@json($dataJs)' @disabled($sedangMenunggu || $bukanHariKerja)
                                     class="inline-flex items-center gap-1.5 rounded-lg border border-garis px-3 py-1.5 text-sm font-semibold hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                    title="{{ $sedangMenunggu ? 'Menunggu persetujuan kepala sekolah' : 'Edit presensi' }}">
+                                    title="{{ $judulEdit }}">
                                 <i data-lucide="pencil" class="h-3.5 w-3.5"></i> Edit
                             </button>
                         </td>
