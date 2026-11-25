@@ -28,7 +28,7 @@
         @php $aktif = ($filter ?? '') === $kunci; @endphp
         <a href="{{ route('kepsek.pantau', $kunci !== '' ? ['status' => $kunci] : []) }}"
            class="truncate rounded-full border px-2 py-2 text-center text-xs font-semibold md:px-4 md:text-sm
-                  {{ $aktif ? 'border-gray-900 bg-gray-900 text-white' : 'border-garis bg-white text-gray-700 hover:bg-gray-50' }}">
+                  {{ $aktif ? 'tab-aktif' : 'tab-biasa' }}">
             <span class="md:hidden">{{ $teksPendek }}</span>
             <span class="hidden md:inline">{{ $teks }}</span>
             · {{ $jumlah }}

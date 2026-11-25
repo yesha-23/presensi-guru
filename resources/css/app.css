@@ -25,3 +25,20 @@
     /* --color-krem: #f5f3ef;
     --color-garis: #e5e0d8; */
 }
+
+/* Tab dan chip pilihan (masukan uji usabilitas: tab lebih menonjol dengan warna kalem) */
+.tab-biasa {
+    border-color: #d6cbec;
+    background-color: #f6f2fc;
+    color: #4b3a75;
+}
+
+.tab-biasa:hover {
+    background-color: #ece4f8;
+}
+
+.tab-aktif {
+    border-color: #5b4596;
+    background-color: #5b4596;
+    color: #ffffff;
+}

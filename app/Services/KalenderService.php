@@ -125,7 +125,7 @@ class KalenderService
     public static function atribut(): array
     {
         return [
-            'nama' => 'Nama entri', 'kategori' => 'Kategori', 'berlaku_untuk' => 'Berlaku untuk',
+            'nama' => 'Nama kegiatan', 'kategori' => 'Kategori', 'berlaku_untuk' => 'Berlaku untuk',
             'unit_id' => 'Unit', 'tanggal_mulai' => 'Tanggal mulai', 'tanggal_selesai' => 'Tanggal selesai',
             'jam_masuk' => 'Jam masuk', 'jam_pulang' => 'Jam pulang',
         ];

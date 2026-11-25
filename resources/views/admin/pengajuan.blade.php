@@ -20,7 +20,7 @@
 <div class="mt-5 grid grid-cols-2 gap-2 md:flex">
     @foreach (['izin' => 'Izin & Sakit', 'lembur' => 'Lembur'] as $kunci => $teks)
         <a href="{{ route('admin.pengajuan', ['tab' => $kunci]) }}"
-           class="rounded-full border px-4 py-2 text-center text-sm font-semibold {{ $tab === $kunci ? 'border-gray-900 bg-gray-900 text-white' : 'border-garis bg-white text-gray-700 hover:bg-gray-50' }}">
+           class="rounded-full border px-4 py-2 text-center text-sm font-semibold {{ $tab === $kunci ? 'tab-aktif' : 'tab-biasa' }}">
             {{ $teks }}
         </a>
     @endforeach

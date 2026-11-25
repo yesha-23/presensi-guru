@@ -40,8 +40,8 @@
     }
     $tabAwal = $tabGalat ?? 'jam';
 
-    $tabAktif = 'border-gray-900 bg-gray-900 text-white';
-    $tabBiasa = 'border-garis bg-white text-gray-700 hover:bg-gray-50';
+    $tabAktif = 'tab-aktif';
+    $tabBiasa = 'tab-biasa';
 
     // Jam kerja dikelompokkan per unit: SD, KB & TK, Yayasan
     $perUnit = $jamKerja->groupBy(fn ($j) => $j->unit->label());

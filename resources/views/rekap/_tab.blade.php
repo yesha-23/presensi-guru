@@ -9,7 +9,7 @@
         @foreach (['rekap' => ['Rekap presensi', 'Rekap'], 'pkg' => ['Laporan PKG', 'Laporan PKG']] as $rute => [$teks, $teksPendek])
             <a href="{{ route($rute) }}"
                class="whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold sm:px-4
-                      {{ request()->routeIs($rute) ? 'border-gray-900 bg-gray-900 text-white' : 'border-garis bg-white text-gray-700 hover:bg-gray-50' }}">
+                      {{ request()->routeIs($rute) ? 'tab-aktif' : 'tab-biasa' }}">
                 <span class="sm:hidden">{{ $teksPendek }}</span>
                 <span class="hidden sm:inline">{{ $teks }}</span>
             </a>

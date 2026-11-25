@@ -22,7 +22,7 @@
     @foreach ($tabs as $kunci => [$label, $jumlah])
         <a href="{{ route('persetujuan', ['tab' => $kunci]) }}"
            class="truncate rounded-full border px-3 py-2 text-center text-sm font-semibold md:px-4
-                  {{ $tab === $kunci ? 'border-gray-900 bg-gray-900 text-white' : 'border-garis bg-white text-gray-700 hover:bg-gray-50' }}">
+                  {{ $tab === $kunci ? 'tab-aktif' : 'tab-biasa' }}">
             {{ $label }} · {{ $jumlah }}
         </a>
     @endforeach

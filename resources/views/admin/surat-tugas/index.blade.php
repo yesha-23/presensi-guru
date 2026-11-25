@@ -16,7 +16,7 @@
     </div>
     <button type="button" data-tambah
             class="inline-flex items-center gap-2 rounded-xl bg-merah px-4 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">
-        <i data-lucide="plus" class="h-4 w-4"></i> Terbitkan surat tugas
+        <i data-lucide="plus" class="h-4 w-4"></i> Buat surat tugas
     </button>
 </div>
 
@@ -140,7 +140,7 @@
     @include('partials.paginasi', ['paginator' => $surat, 'satuan' => 'surat tugas'])
 </div>
 
-{{-- ================= POPUP TERBITKAN / UBAH ================= --}}
+{{-- ================= POPUP BUAT / UBAH ================= --}}
 <dialog id="modal-surat" class="m-auto max-h-[92vh] w-[calc(100%-2rem)] max-w-2xl overflow-y-auto rounded-3xl p-0 backdrop:bg-gray-900/60">
     <form id="form-surat" method="POST" enctype="multipart/form-data"
           action="{{ route('admin.surat-tugas.store') }}" data-url-tambah="{{ route('admin.surat-tugas.store') }}">
@@ -150,7 +150,7 @@
 
         <div class="flex items-start justify-between border-b border-garis px-6 py-4">
             <div>
-                <h2 id="judul-modal" class="text-xl font-extrabold">Terbitkan surat tugas</h2>
+                <h2 id="judul-modal" class="text-xl font-extrabold">Buat surat tugas</h2>
                 <p class="text-sm text-gray-500">Nomor surat dibuat otomatis setelah disetujui</p>
             </div>
             <button type="button" data-tutup-modal class="rounded-lg border border-garis p-2"><i data-lucide="x" class="h-4 w-4"></i></button>
@@ -444,7 +444,7 @@
         form.action = tambah ? form.dataset.urlTambah : data.url_update;
         form.elements['_method'].value = tambah ? 'POST' : 'PUT';
         form.elements['_id'].value = data?.id ?? '';
-        document.getElementById('judul-modal').textContent = tambah ? 'Terbitkan surat tugas' : 'Ubah surat tugas';
+        document.getElementById('judul-modal').textContent = tambah ? 'Buat surat tugas' : 'Ubah surat tugas';
         // Draf disimpan sebagai draf; usulan yang diproses / surat perlu revisi disimpan tanpa mengubah status
         document.getElementById('tombol-simpan').textContent = tambah || data?.status === 'Draf' ? 'Simpan draf' : 'Simpan perubahan';
 

@@ -30,8 +30,8 @@
 {{-- ================= FILTER UNIT: chip, muat 1 baris di HP & laptop (tanpa geser) ================= --}}
 @php
     $kelasChip = 'truncate rounded-full border px-3 py-2 text-center text-sm font-semibold md:px-5';
-    $chipAktif = 'border-gray-900 bg-gray-900 text-white';
-    $chipBiasa = 'border-garis bg-white text-gray-700 hover:bg-gray-50';
+    $chipAktif = 'tab-aktif';
+    $chipBiasa = 'tab-biasa';
 @endphp
 <nav aria-label="Filter unit" class="mt-5 flex items-center gap-2">
     <span class="mr-1 hidden text-sm font-semibold text-gray-500 md:inline">Unit</span>

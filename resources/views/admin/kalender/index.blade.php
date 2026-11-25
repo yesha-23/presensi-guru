@@ -47,7 +47,7 @@
         </a>
         <button type="button" data-tambah
                 class="inline-flex items-center gap-2 rounded-xl bg-merah px-4 py-2.5 text-sm font-semibold text-white hover:bg-merah-tua">
-            <i data-lucide="plus" class="h-4 w-4"></i> Tambah entri
+            <i data-lucide="plus" class="h-4 w-4"></i> Tambah kegiatan
         </button>
     </div>
 </div>
@@ -139,7 +139,7 @@
 
         {{-- Entri bulan ini --}}
         <div class="rounded-3xl border border-garis bg-white p-5">
-            <h2 class="font-bold">Entri bulan ini</h2>
+            <h2 class="font-bold">Kegiatan & libur bulan ini</h2>
 
             <div class="mt-3 space-y-3">
                 @forelse ($entri as $e)
@@ -224,15 +224,15 @@
 
         <div class="flex items-start justify-between border-b border-garis px-6 py-4">
             <div>
-                <h2 id="judul-entri" class="text-xl font-extrabold">Tambah entri kalender</h2>
+                <h2 id="judul-entri" class="text-xl font-extrabold">Tambah kegiatan kalender</h2>
                 <p class="text-sm text-gray-500">{{ $unit->label() }} · {{ $semesterAktif ? 'Tahun ajaran '.$semesterAktif->tahun_ajaran : $bulan->translatedFormat('F Y') }}</p>
             </div>
             <button type="button" data-tutup-modal class="rounded-lg border border-garis p-2"><i data-lucide="x" class="h-4 w-4"></i></button>
         </div>
 
         <div class="grid gap-4 px-6 py-5 sm:grid-cols-2">
-            <label class="{{ $kelasLabel }} sm:col-span-2">Nama entri
-                <input name="nama" value="{{ old('nama') }}" placeholder="Contoh: Rapat Sabtu" class="{{ $kelasInput }}">
+            <label class="{{ $kelasLabel }} sm:col-span-2">Nama kegiatan
+                <input name="nama" value="{{ old('nama') }}" placeholder="Contoh: Rapat Sabtu atau Libur Akhir Semester" class="{{ $kelasInput }}">
                 @error('nama') <span data-galat class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
             </label>
 
@@ -364,7 +364,7 @@
         form.action = tambah ? form.dataset.urlTambah : data.url_update;
         form.elements['_method'].value = tambah ? 'POST' : 'PUT';
         form.elements['_id'].value = data?.id ?? '';
-        document.getElementById('judul-entri').textContent = tambah ? 'Tambah entri kalender' : 'Ubah entri kalender';
+        document.getElementById('judul-entri').textContent = tambah ? 'Tambah kegiatan kalender' : 'Ubah kegiatan kalender';
     }
 
     function isi(data, tanggal = null) {
