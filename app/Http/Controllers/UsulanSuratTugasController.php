@@ -184,13 +184,16 @@ class UsulanSuratTugasController extends Controller
             // Undangan/surat dari pemberi tugas wajib saat mengusulkan (bukti dasar penerbitan surat)
             'lampiran'        => [$baru ? 'required' : 'nullable', 'file', 'mimes:pdf,jpg,jpeg,png', 'max:2048'],
         ], [
+            // Pesan berisi apa yang salah dan cara memperbaikinya (tindak lanjut uji usabilitas)
             'required'                       => ':attribute wajib diisi.',
-            'lampiran.required'              => 'Lampirkan undangan atau surat dari pemberi tugas.',
-            'tanggal_mulai.after_or_equal'   => 'Tanggal mulai paling cepat hari ini.',
-            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
+            'perihal.required'               => 'Perihal wajib diisi. Tuliskan nama kegiatan, misalnya "Pendampingan lomba FLS2N".',
+            'lokasi.required'                => 'Lokasi wajib diisi. Tuliskan tempat kegiatan, misalnya "Dinas Pendidikan Sleman".',
+            'lampiran.required'              => 'Lampirkan undangan atau surat dari pemberi tugas (PDF, JPG, atau PNG, maksimal 2 MB).',
+            'tanggal_mulai.after_or_equal'   => 'Tanggal mulai paling cepat hari ini. Pilih tanggal hari ini atau setelahnya.',
+            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai. Pilih tanggal yang sama atau setelah tanggal mulai.',
             'date_format'                    => 'Format :attribute tidak valid.',
-            'lampiran.mimes'                 => 'Lampiran harus berformat PDF, JPG, atau PNG.',
-            'lampiran.max'                   => 'Ukuran lampiran maksimal 2 MB.',
+            'lampiran.mimes'                 => 'Lampiran harus berformat PDF, JPG, atau PNG. Pilih ulang berkas dengan format tersebut.',
+            'lampiran.max'                   => 'Ukuran lampiran lebih dari 2 MB. Pilih berkas lain atau perkecil ukurannya terlebih dahulu.',
             'max'                            => ':attribute maksimal :max karakter.',
         ], [
             'perihal' => 'Perihal', 'pemberi_tugas' => 'Pemberi tugas', 'tanggal_mulai' => 'Tanggal mulai',

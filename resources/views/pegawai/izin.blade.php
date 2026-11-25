@@ -35,8 +35,10 @@
             </div>
         @endif
 
+        @include('pegawai._galat-form', ['form' => 'form-izin', 'judul' => 'Pengajuan', 'berkas' => true])
+
         <div>
-            <span class="block text-sm font-semibold">Jenis pengajuan</span>
+            <span class="block text-sm font-semibold">Jenis pengajuan <span class="text-merah" aria-hidden="true">*</span></span>
             <div class="mt-2 grid grid-cols-2 rounded-2xl bg-krem p-1">
                 @foreach (['Izin', 'Sakit'] as $jenis)
                     <label class="cursor-pointer">
@@ -52,18 +54,19 @@
         </div>
 
         <div class="grid grid-cols-2 gap-3">
-            <label class="block text-sm font-semibold">Tanggal mulai
+            <label class="block text-sm font-semibold">Tanggal mulai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="date" name="tanggal_mulai" value="{{ old('tanggal_mulai', $edit?->tanggal_mulai?->toDateString()) }}" class="{{ $kelasInput }}">
             </label>
-            <label class="block text-sm font-semibold">Tanggal selesai
+            <label class="block text-sm font-semibold">Tanggal selesai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="date" name="tanggal_selesai" value="{{ old('tanggal_selesai', $edit?->tanggal_selesai?->toDateString()) }}" class="{{ $kelasInput }}">
             </label>
             @error('tanggal_mulai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
             @error('tanggal_selesai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
         </div>
 
-        <label class="block text-sm font-semibold">Alasan
+        <label class="block text-sm font-semibold">Alasan <span class="text-merah" aria-hidden="true">*</span>
             <textarea name="alasan" rows="4" maxlength="1000" class="{{ $kelasInput }}"
+                      data-wajib="Alasan wajib diisi. Tuliskan alasan singkat, misalnya &quot;Kontrol ke dokter gigi&quot;."
                       placeholder="Tuliskan alasan secara singkat">{{ old('alasan', $edit?->alasan) }}</textarea>
             @error('alasan') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
@@ -71,7 +74,7 @@
         <div>
             <span class="block text-sm font-semibold">
                 Bukti pendukung
-                @if ($edit) <span class="font-normal text-gray-500">(opsional, kosongkan jika tidak diganti)</span> @endif
+                @if ($edit) <span class="font-normal text-gray-500">(opsional, kosongkan jika tidak diganti)</span> @else <span class="text-merah" aria-hidden="true">*</span> @endif
             </span>
             @if ($edit?->bukti_path)
                 <p class="mt-1 text-xs text-gray-600">
@@ -82,7 +85,8 @@
                 <i data-lucide="upload" class="h-6 w-6 text-merah"></i>
                 <span class="font-semibold">{{ $edit ? 'Ganti dengan foto atau PDF baru' : 'Unggah foto atau PDF' }}</span>
                 <span id="info-bukti" class="text-xs text-gray-500">Maksimal 2 MB</span>
-                <input type="file" name="bukti" id="input-bukti" accept="image/jpeg,image/png,application/pdf" class="sr-only">
+                <input type="file" name="bukti" id="input-bukti" accept="image/jpeg,image/png,application/pdf" class="sr-only"
+                       @unless ($edit) data-wajib="Bukti pendukung wajib diunggah. Pilih foto atau PDF, misalnya surat dokter atau surat undangan." @endunless>
             </label>
             @error('bukti') <p class="mt-1 text-xs text-merah">{{ $message }}</p> @enderror
         </div>

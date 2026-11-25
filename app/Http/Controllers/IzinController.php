@@ -207,12 +207,14 @@ class IzinController extends Controller
             'alasan'          => ['required', 'string', 'max:1000'],
             'bukti'           => [$kecuali ? 'nullable' : 'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
         ], [
+            // Pesan berisi apa yang salah dan cara memperbaikinya (tindak lanjut uji usabilitas)
             'required'                       => ':attribute wajib diisi.',
-            'bukti.required'                 => 'Bukti pendukung wajib diunggah.',
-            'bukti.mimes'                    => 'Bukti harus berformat JPG, PNG, atau PDF.',
-            'bukti.max'                      => 'Ukuran bukti maksimal 2 MB.',
-            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai.',
-            'alasan.max'                     => 'Alasan maksimal 1000 karakter.',
+            'alasan.required'                => 'Alasan wajib diisi. Tuliskan alasan singkat, misalnya "Kontrol ke dokter gigi".',
+            'bukti.required'                 => 'Bukti pendukung wajib diunggah. Pilih foto atau PDF, misalnya surat dokter atau surat undangan.',
+            'bukti.mimes'                    => 'Bukti harus berformat JPG, PNG, atau PDF. Pilih ulang berkas dengan format tersebut.',
+            'bukti.max'                      => 'Ukuran bukti lebih dari 2 MB. Pilih foto lain atau perkecil ukuran PDF terlebih dahulu.',
+            'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai. Pilih tanggal yang sama atau setelah tanggal mulai.',
+            'alasan.max'                     => 'Alasan maksimal 1000 karakter. Persingkat alasan Anda.',
         ], [
             'jenis' => 'Jenis pengajuan', 'tanggal_mulai' => 'Tanggal mulai',
             'tanggal_selesai' => 'Tanggal selesai', 'alasan' => 'Alasan',
@@ -253,7 +255,7 @@ class IzinController extends Controller
                 ->exists();
 
             if ($bentrok) {
-                $v->errors()->add('tanggal_mulai', 'Sudah ada pengajuan lain pada rentang tanggal tersebut.');
+                $v->errors()->add('tanggal_mulai', 'Sudah ada pengajuan lain pada rentang tanggal tersebut. Pilih tanggal lain, atau ubah pengajuan sebelumnya di menu Pengajuan.');
             }
         });
 

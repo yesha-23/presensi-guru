@@ -42,3 +42,9 @@
     background-color: #5b4596;
     color: #ffffff;
 }
+
+/* Kolom formulir yang salah (tindak lanjut uji usabilitas: kolom bermasalah ditandai merah) */
+[aria-invalid='true'] {
+    border-color: #b91c1c;
+    background-color: #fff7f7;
+}

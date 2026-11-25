@@ -30,7 +30,9 @@
             </div>
         @endif
 
-        <label class="block text-sm font-semibold">Tanggal
+        @include('pegawai._galat-form', ['form' => 'form-lembur', 'judul' => 'Pengajuan'])
+
+        <label class="block text-sm font-semibold">Tanggal <span class="text-merah" aria-hidden="true">*</span>
             <input type="date" name="tanggal" value="{{ old('tanggal', $edit?->tanggal?->toDateString() ?? today()->toDateString()) }}"
                    min="{{ today()->subDay()->toDateString() }}" max="{{ today()->addDays(30)->toDateString() }}"
                    class="{{ $kelasInput }}">
@@ -38,18 +40,19 @@
         </label>
 
         <div class="grid grid-cols-2 gap-3">
-            <label class="block text-sm font-semibold">Jam mulai
+            <label class="block text-sm font-semibold">Jam mulai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="time" name="jam_mulai" value="{{ old('jam_mulai', $edit ? substr($edit->jam_mulai, 0, 5) : $jamPulang) }}" class="{{ $kelasInput }}">
             </label>
-            <label class="block text-sm font-semibold">Jam selesai
+            <label class="block text-sm font-semibold">Jam selesai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="time" name="jam_selesai" value="{{ old('jam_selesai', $edit ? substr($edit->jam_selesai, 0, 5) : $jamSelesaiAwal) }}" class="{{ $kelasInput }}">
             </label>
             @error('jam_mulai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
             @error('jam_selesai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
         </div>
 
-        <label class="block text-sm font-semibold">Uraian pekerjaan
+        <label class="block text-sm font-semibold">Uraian pekerjaan <span class="text-merah" aria-hidden="true">*</span>
             <textarea name="uraian" rows="4" maxlength="1000" class="{{ $kelasInput }}"
+                      data-wajib="Uraian pekerjaan wajib diisi. Tuliskan pekerjaan yang dilakukan, misalnya &quot;Menyusun nilai rapor kelas 5&quot;."
                       placeholder="Contoh: menyusun nilai rapor kelas 5">{{ old('uraian', $edit?->uraian) }}</textarea>
             @error('uraian') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>

@@ -27,7 +27,7 @@
 
 <div class="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
     {{-- ================= FORM (tambah & edit) ================= --}}
-    <form method="POST" enctype="multipart/form-data"
+    <form method="POST" enctype="multipart/form-data" id="form-usulan"
           action="{{ $edit ? route('pegawai.usulan-surat.update', $edit) : route('pegawai.usulan-surat.store') }}"
           class="space-y-5 rounded-3xl border bg-white p-5 lg:p-6 {{ $edit ? 'border-navy' : 'border-garis' }}">
         @csrf
@@ -40,12 +40,15 @@
             </div>
         @endif
 
-        <label class="{{ $kelasLabel }}">Perihal
-            <input name="perihal" value="{{ $nilai('perihal') }}" maxlength="200" placeholder="Contoh: Pendampingan lomba FLS2N tingkat kabupaten" class="{{ $kelasInput }}">
+        @include('pegawai._galat-form', ['form' => 'form-usulan', 'judul' => 'Usulan', 'berkas' => true])
+
+        <label class="{{ $kelasLabel }}">Perihal <span class="text-merah" aria-hidden="true">*</span>
+            <input name="perihal" value="{{ $nilai('perihal') }}" maxlength="200" placeholder="Contoh: Pendampingan lomba FLS2N tingkat kabupaten" class="{{ $kelasInput }}"
+                   data-wajib="Perihal wajib diisi. Tuliskan nama kegiatan, misalnya &quot;Pendampingan lomba FLS2N&quot;.">
             @error('perihal') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
 
-        <label class="{{ $kelasLabel }}">Pemberi tugas / pengundang
+        <label class="{{ $kelasLabel }}">Pemberi tugas / pengundang <span class="text-merah" aria-hidden="true">*</span>
             <select name="pemberi_tugas" class="{{ $kelasInput }}">
                 @foreach (['Dinas', 'Yayasan', 'Lainnya'] as $p)
                     <option @selected($nilai('pemberi_tugas', 'Dinas') === $p)>{{ $p }}</option>
@@ -54,10 +57,10 @@
         </label>
 
         <div class="grid grid-cols-2 gap-3">
-            <label class="{{ $kelasLabel }}">Tanggal mulai
+            <label class="{{ $kelasLabel }}">Tanggal mulai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="date" name="tanggal_mulai" value="{{ $tglMulai }}" min="{{ $hariIni }}" class="{{ $kelasInput }}">
             </label>
-            <label class="{{ $kelasLabel }}">Tanggal selesai
+            <label class="{{ $kelasLabel }}">Tanggal selesai <span class="text-merah" aria-hidden="true">*</span>
                 <input type="date" name="tanggal_selesai" value="{{ $tglSelesai }}" min="{{ $hariIni }}" class="{{ $kelasInput }}">
             </label>
             @error('tanggal_mulai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
@@ -73,14 +76,15 @@
             @error('jam_selesai') <p class="col-span-2 -mt-1 text-xs text-merah">{{ $message }}</p> @enderror
         </div>
 
-        <label class="{{ $kelasLabel }}">Lokasi
-            <input name="lokasi" value="{{ $nilai('lokasi') }}" maxlength="150" placeholder="Contoh: Gedung Dinas Pendidikan Sleman" class="{{ $kelasInput }}">
+        <label class="{{ $kelasLabel }}">Lokasi <span class="text-merah" aria-hidden="true">*</span>
+            <input name="lokasi" value="{{ $nilai('lokasi') }}" maxlength="150" placeholder="Contoh: Gedung Dinas Pendidikan Sleman" class="{{ $kelasInput }}"
+                   data-wajib="Lokasi wajib diisi. Tuliskan tempat kegiatan, misalnya &quot;Dinas Pendidikan Sleman&quot;.">
             @error('lokasi') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
 
         <div class="grid gap-3 sm:grid-cols-2">
             <div>
-                <span class="{{ $kelasLabel }}">Jenis kegiatan</span>
+                <span class="{{ $kelasLabel }}">Jenis kegiatan <span class="text-merah" aria-hidden="true">*</span></span>
                 <div class="mt-1 grid grid-cols-2 gap-2">
                     @foreach (['Luar' => 'Luar sekolah', 'Dalam' => 'Dalam sekolah'] as $isi => $label)
                         <label class="flex items-center gap-2 rounded-xl border border-garis px-3 py-2.5 text-sm">
@@ -91,7 +95,7 @@
                 </div>
             </div>
             <div>
-                <span class="{{ $kelasLabel }}">Sifat</span>
+                <span class="{{ $kelasLabel }}">Sifat <span class="text-merah" aria-hidden="true">*</span></span>
                 <div class="mt-1 grid grid-cols-2 gap-2">
                     @foreach (['Terencana', 'Mendadak'] as $sifat)
                         <label class="flex items-center gap-2 rounded-xl border border-garis px-3 py-2.5 text-sm">
@@ -112,7 +116,7 @@
         <div>
             <span class="{{ $kelasLabel }}">
                 Undangan / surat dari pemberi tugas
-                @if ($edit) <span class="font-normal text-gray-500">(kosongkan jika tidak diganti)</span> @endif
+                @if ($edit) <span class="font-normal text-gray-500">(kosongkan jika tidak diganti)</span> @else <span class="text-merah" aria-hidden="true">*</span> @endif
             </span>
             @if ($edit?->lampiran_path)
                 <p class="mt-1 text-xs text-gray-600">
@@ -122,6 +126,7 @@
             <label class="mt-2 flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-garis bg-krem/60 px-4 py-3 text-sm font-semibold hover:bg-krem">
                 <i data-lucide="upload" class="h-4 w-4"></i> Pilih file (PDF/JPG/PNG)
                 <input type="file" name="lampiran" accept="application/pdf,image/jpeg,image/png" class="sr-only"
+                       @unless ($edit) data-wajib="Lampirkan undangan atau surat dari pemberi tugas (PDF, JPG, atau PNG, maksimal 2 MB)." @endunless
                        onchange="document.getElementById('info-lampiran').textContent = this.files[0]?.name ?? ''">
             </label>
             <p id="info-lampiran" class="mt-1 text-center text-xs text-gray-500">Maksimal 2 MB</p>
