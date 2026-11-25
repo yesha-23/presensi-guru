@@ -79,38 +79,49 @@
         form.addEventListener('input', bersihkan);
         form.addEventListener('change', bersihkan);
 
-        // 2) Periksa kolom wajib sebelum dikirim, supaya pengguna tidak perlu menunggu jawaban server
+        // 2) Periksa kolom wajib sebelum dikirim, supaya pengguna tidak perlu menunggu jawaban server:
+        //    kosong (data-wajib) atau isinya kurang dari batas minimal (data-min + data-pesan-min)
         form.addEventListener('submit', (e) => {
             form.querySelectorAll('[data-galat-klien]').forEach((p) => p.remove());
 
-            const kosong = [...form.querySelectorAll('[data-wajib]')].filter((input) =>
-                input.type === 'file' ? input.files.length === 0 : !input.value.trim()
-            );
-            if (!kosong.length) return;
+            const salah = [];
+            form.querySelectorAll('[data-wajib]').forEach((input) => {
+                if (input.type === 'file') {
+                    if (input.files.length === 0) salah.push({ input, pesan: input.dataset.wajib });
+                    return;
+                }
+                const isi = input.value.trim();
+                if (!isi) {
+                    salah.push({ input, pesan: input.dataset.wajib });
+                } else if (input.dataset.min && isi.length < Number(input.dataset.min)) {
+                    salah.push({ input, pesan: input.dataset.pesanMin });
+                }
+            });
+            if (!salah.length) return;
 
             e.preventDefault();
 
-            kosong.forEach((input) => {
+            salah.forEach(({ input, pesan }) => {
                 tandai(input, true);
                 const el = sasaran(input);
-                const sudahAda = [...el.parentElement.children].some((c) => c.textContent.trim() === input.dataset.wajib);
+                const sudahAda = [...el.parentElement.children].some((c) => c.textContent.trim() === pesan);
                 if (sudahAda) return;
 
-                const pesan = document.createElement('span');
-                pesan.dataset.galatKlien = '';
-                pesan.className = 'mt-1 block text-xs font-normal text-merah';
-                pesan.textContent = input.dataset.wajib;
-                el.insertAdjacentElement('afterend', pesan);
+                const span = document.createElement('span');
+                span.dataset.galatKlien = '';
+                span.className = 'mt-1 block text-xs font-normal text-merah';
+                span.textContent = pesan;
+                el.insertAdjacentElement('afterend', span);
             });
 
-            judul.textContent = `${kata} belum terkirim. Lengkapi ${kosong.length} isian bertanda merah di bawah ini.`;
-            daftar.replaceChildren(...kosong.map((input) => {
+            judul.textContent = `${kata} belum terkirim. Perbaiki ${salah.length} isian bertanda merah di bawah ini.`;
+            daftar.replaceChildren(...salah.map(({ pesan }) => {
                 const li = document.createElement('li');
-                li.textContent = input.dataset.wajib;
+                li.textContent = pesan;
                 return li;
             }));
             ringkasan.classList.remove('hidden');
-            fokus(kosong[0]);
+            fokus(salah[0].input);
         });
     })();
 </script>

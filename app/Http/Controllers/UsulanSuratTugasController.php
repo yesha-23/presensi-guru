@@ -171,7 +171,7 @@ class UsulanSuratTugasController extends Controller
         ]);
 
         $validator = Validator::make($request->all(), [
-            'perihal'         => ['required', 'string', 'max:200'],
+            'perihal'         => ['required', 'string', 'min:5', 'max:200'],
             'pemberi_tugas'   => ['required', Rule::in(['Dinas', 'Yayasan', 'Lainnya'])],
             'tanggal_mulai'   => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
             'tanggal_selesai' => ['required', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
@@ -187,6 +187,7 @@ class UsulanSuratTugasController extends Controller
             // Pesan berisi apa yang salah dan cara memperbaikinya (tindak lanjut uji usabilitas)
             'required'                       => ':attribute wajib diisi.',
             'perihal.required'               => 'Perihal wajib diisi. Tuliskan nama kegiatan, misalnya "Pendampingan lomba FLS2N".',
+            'perihal.min'                    => 'Perihal terlalu singkat (minimal 5 karakter). Tuliskan nama kegiatan, misalnya "Pendampingan lomba FLS2N".',
             'lokasi.required'                => 'Lokasi wajib diisi. Tuliskan tempat kegiatan, misalnya "Dinas Pendidikan Sleman".',
             'lampiran.required'              => 'Lampirkan undangan atau surat dari pemberi tugas (PDF, JPG, atau PNG, maksimal 2 MB).',
             'tanggal_mulai.after_or_equal'   => 'Tanggal mulai paling cepat hari ini. Pilih tanggal hari ini atau setelahnya.',

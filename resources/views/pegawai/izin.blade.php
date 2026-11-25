@@ -67,6 +67,8 @@
         <label class="block text-sm font-semibold">Alasan <span class="text-merah" aria-hidden="true">*</span>
             <textarea name="alasan" rows="4" maxlength="1000" class="{{ $kelasInput }}"
                       data-wajib="Alasan wajib diisi. Tuliskan alasan singkat, misalnya &quot;Kontrol ke dokter gigi&quot;."
+                      data-min="5"
+                      data-pesan-min="Alasan terlalu singkat (minimal 5 karakter). Jelaskan alasannya, misalnya &quot;Kontrol ke dokter gigi&quot;."
                       placeholder="Tuliskan alasan secara singkat">{{ old('alasan', $edit?->alasan) }}</textarea>
             @error('alasan') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>

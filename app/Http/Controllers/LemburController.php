@@ -187,13 +187,14 @@ class LemburController extends Controller
             'tanggal'     => ['required', 'date_format:Y-m-d'],
             'jam_mulai'   => ['required', 'date_format:H:i'],
             'jam_selesai' => ['required', 'date_format:H:i', 'after:jam_mulai'],
-            'uraian'      => ['required', 'string', 'max:1000'],
+            'uraian'      => ['required', 'string', 'min:5', 'max:1000'],
         ], [
             // Pesan berisi apa yang salah dan cara memperbaikinya (tindak lanjut uji usabilitas)
             'required'          => ':attribute wajib diisi.',
             'uraian.required'   => 'Uraian pekerjaan wajib diisi. Tuliskan pekerjaan yang dilakukan, misalnya "Menyusun nilai rapor kelas 5".',
             'date_format'       => 'Format :attribute tidak valid.',
             'jam_selesai.after' => 'Jam selesai harus setelah jam mulai. Periksa kembali kedua jam tersebut.',
+            'uraian.min'        => 'Uraian pekerjaan terlalu singkat (minimal 5 karakter). Jelaskan pekerjaannya, misalnya "Menyusun nilai rapor kelas 5".',
             'uraian.max'        => 'Uraian pekerjaan maksimal 1000 karakter. Persingkat uraian Anda.',
         ], [
             'tanggal' => 'Tanggal', 'jam_mulai' => 'Jam mulai',

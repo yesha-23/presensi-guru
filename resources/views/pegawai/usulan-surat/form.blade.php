@@ -44,7 +44,9 @@
 
         <label class="{{ $kelasLabel }}">Perihal <span class="text-merah" aria-hidden="true">*</span>
             <input name="perihal" value="{{ $nilai('perihal') }}" maxlength="200" placeholder="Contoh: Pendampingan lomba FLS2N tingkat kabupaten" class="{{ $kelasInput }}"
-                   data-wajib="Perihal wajib diisi. Tuliskan nama kegiatan, misalnya &quot;Pendampingan lomba FLS2N&quot;.">
+                   data-wajib="Perihal wajib diisi. Tuliskan nama kegiatan, misalnya &quot;Pendampingan lomba FLS2N&quot;."
+                   data-min="5"
+                   data-pesan-min="Perihal terlalu singkat (minimal 5 karakter). Tuliskan nama kegiatan, misalnya &quot;Pendampingan lomba FLS2N&quot;.">
             @error('perihal') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
 

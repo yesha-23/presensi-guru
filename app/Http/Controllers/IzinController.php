@@ -204,7 +204,7 @@ class IzinController extends Controller
             'jenis'           => ['required', Rule::in(['Izin', 'Sakit'])],
             'tanggal_mulai'   => ['required', 'date_format:Y-m-d'],
             'tanggal_selesai' => ['required', 'date_format:Y-m-d', 'after_or_equal:tanggal_mulai'],
-            'alasan'          => ['required', 'string', 'max:1000'],
+            'alasan'          => ['required', 'string', 'min:5', 'max:1000'],
             'bukti'           => [$kecuali ? 'nullable' : 'required', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:2048'],
         ], [
             // Pesan berisi apa yang salah dan cara memperbaikinya (tindak lanjut uji usabilitas)
@@ -214,6 +214,7 @@ class IzinController extends Controller
             'bukti.mimes'                    => 'Bukti harus berformat JPG, PNG, atau PDF. Pilih ulang berkas dengan format tersebut.',
             'bukti.max'                      => 'Ukuran bukti lebih dari 2 MB. Pilih foto lain atau perkecil ukuran PDF terlebih dahulu.',
             'tanggal_selesai.after_or_equal' => 'Tanggal selesai tidak boleh sebelum tanggal mulai. Pilih tanggal yang sama atau setelah tanggal mulai.',
+            'alasan.min'                     => 'Alasan terlalu singkat (minimal 5 karakter). Jelaskan alasannya, misalnya "Kontrol ke dokter gigi".',
             'alasan.max'                     => 'Alasan maksimal 1000 karakter. Persingkat alasan Anda.',
         ], [
             'jenis' => 'Jenis pengajuan', 'tanggal_mulai' => 'Tanggal mulai',

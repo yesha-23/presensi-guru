@@ -53,6 +53,8 @@
         <label class="block text-sm font-semibold">Uraian pekerjaan <span class="text-merah" aria-hidden="true">*</span>
             <textarea name="uraian" rows="4" maxlength="1000" class="{{ $kelasInput }}"
                       data-wajib="Uraian pekerjaan wajib diisi. Tuliskan pekerjaan yang dilakukan, misalnya &quot;Menyusun nilai rapor kelas 5&quot;."
+                      data-min="5"
+                      data-pesan-min="Uraian pekerjaan terlalu singkat (minimal 5 karakter). Jelaskan pekerjaannya, misalnya &quot;Menyusun nilai rapor kelas 5&quot;."
                       placeholder="Contoh: menyusun nilai rapor kelas 5">{{ old('uraian', $edit?->uraian) }}</textarea>
             @error('uraian') <span class="mt-1 block text-xs font-normal text-merah">{{ $message }}</span> @enderror
         </label>
